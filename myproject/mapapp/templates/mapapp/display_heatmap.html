@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+      <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+
+    <!-- Leaflet Heatmap JavaScript -->
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.3/leaflet.css" />
+    <script src="https://iosphere.github.io/Leaflet.hotline/dist/leaflet.hotline.js"></script>
+
+
+    <style>
+        #map { height: 400px; }
+    </style>
+</head>
+<body>
+    <div id="map" style="height: 400px;"></div>
+
+<script>
+    var map = L.map('map');
+
+    {% if hotline_data_json %}
+        var hotlines = {{ hotline_data_json|safe }};
+        console.log("Hotlines Data: ", hotlines);
+        var bounds = [];
+
+        hotlines.forEach(function(hotlineData, index) {
+            console.log("Processing hotline " + index, hotlineData);
+            // Add each hotline
+            var hotline = L.hotline(hotlineData, {
+                min: -140,  // Minimum value of your data
+                max: -60,   // Maximum value of your data
+                palette: {
+                    0.0: 'green',  // Color for the minimum value
+                    0.5: 'yellow', // Color for the middle value
+                    1.0: 'red'     // Color for the maximum value
+                },
+                weight: 5,
+                outlineWidth: 1
+            }).addTo(map);
+
+            // Update bounds with the coordinates of each point in the hotline
+            hotlineData.forEach(function(point) {
+                bounds.push([point[0], point[1]]); // Latitude, Longitude
+            });
+        });
+
+        // Fit map bounds to the hotlines if bounds are not empty
+        if (bounds.length > 0) {
+            map.fitBounds(bounds);
+        }
+    {% else %}
+        // Default view if no data is available
+        map.setView([53.4289, -0.9381], 10);
+    {% endif %}
+
+    // Add the tile layer to the map
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18
+    }).addTo(map);
+</script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+{% extends 'mapapp/base.html' %}
+
+{% block title %}Define Boundary{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <style>
+        #map { height: 90vh}
+        .form-control { /* Your form control styles */ }
+    </style>
+{% endblock %}
+
+{% block content %}
+   <section id="content">
+        <div class="container-fluid mt-3" >
+            <div class="row justify-content-end">
+                <div class="col-10 border-box" style="
+    border: black;
+    border-style: double;
+    padding: 0 !important;
+    border-width: thick;
+">
+                    <div id="map"></div>
+                </div>
+                <div class="col-2">
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">Interpolation</button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">Download</button>
+                      </li>
+                    </ul>
+                    <div class="tab-content" id="myTabContent">
+                        <div class=" tab-pane fade show active border-box" id="home" role="tabpanel" aria-labelledby="home-tab">
+                            <form method="post" action="{% url 'display_heatmap' %}" id="interpolationResult">
+                            {% csrf_token %}
+                                <div class="mb-3">
+                                  <label for="operatorName" class="form-label">Operator Name</label>
+                                  <select class="form-select form-select-lg mb-3" aria-label="Large select example" id="operatorName" name="operatorName">
+                                    <option value="3">Three</option>
+                                    <option value="EE">EE</option>
+                                    <option value="vodafone UK">Vodafone UK</option>
+                                    <option value="O2 - UK">O2 UK</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                  <label for="dataSelection" class="form-label">Data Selection</label>
+                                  <select id="dataSelection" class="form-select form-select-lg mb-3" name="dataSelection">
+                                        <option value="CD">Complete Data</option>
+                                        <option value="BD">Boundary Data</option>
+                                        <!-- other options -->
+                                  </select>
+                                </div>
+                                <div class="mb-3">
+                                    <div>
+                                        <label>Use existing database data</label>
+                                        <input type="radio" name="data_source" value="database" checked>
+                                    </div>
+                                    <div>
+                                        <label>Upload CSV</label>
+                                        <input type="radio" name="data_source" value="csv">
+                                        <input type="file" name="data_file" accept=".csv">
+                                    </div>
+                                </div>
+                                 <div class="mb-3">
+                                  <label for="InterpolationTechnique" class="form-label">Interpolation Model</label>
+                                  <select id="InterpolationTechnique" class="form-select form-select-lg mb-3" name="InterpolationTechnique">
+                                        <option value="OD">Original Data</option>
+                                        <option value="RF">Random Forest</option>
+                                        <option value="RF_2">Random Forest (V2)</option>
+<!--                                        <option value="CNN">CNN</option>-->
+<!--                                        <option value="RNN">RNN</option>-->
+                                        <option value="GAN">GAN</option>
+                                        <option value="RF_PCI">Random Forest(PCI Based)</option>
+                                        <option value="DT">Decision Tree</option>
+                                        <option value="DT_PCI">Decision Tree(PCI Based)</option>
+                                        <option value="IDW">IDW</option>
+                                        <option value="IDW_PCI">IDW(PCI Based)</option>
+                                        <option value="OK">Ordinary Kriging</option>
+                                        <option value="OK_PCI">Ordinary Kriging(PCI Based)</option>
+                                        <!-- other options -->
+                                  </select>
+                                </div>
+
+                            <input id="coordinates" name="coordinates" type="hidden" value=''>
+                            <button type="submit" class="btn btn-success">Show Results</button>
+<!--                                <a type="button" class="btn btn-success" onclick="document.getElementById('interpolationResult').submit()">View Result</a>-->
+                        </form>
+
+                        </div>
+                        <div class="tab-pane fade border-box" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                            <form method="post" action="{% url 'download_csv' %}">
+                            {% csrf_token %}
+                                <div class="mb-3">
+                                  <label for="operatorName2" class="form-label">Operator Name</label>
+                                  <select class="form-select form-select-lg mb-3" aria-label="Large select example" id="operatorName2" name="operatorName">
+                                    <option value="3">Three</option>
+                                    <option value="EE">EE</option>
+                                    <option value="vodafone UK">Vodafone UK</option>
+                                    <option value="O2 - UK">O2 UK</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                  <label for="dataSelection2" class="form-label">Data Selection</label>
+                                  <select id="dataSelection2" class="form-select form-select-lg mb-3" name="dataSelection">
+                                        <option value="CD">Complete Data</option>
+                                        <option value="BD">Boundary Data</option>
+                                        <!-- other options -->
+                                  </select>
+                                </div>
+
+                            <input id="coordinates2" name="coordinates" type="hidden" value=''>
+                            <button type="submit" class="btn btn-success">Download</button>
+
+                        </form>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        var map = L.map('map').setView([53.4289, -0.9381], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18
+        }).addTo(map);
+
+        var drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+        var drawControl = new L.Control.Draw({
+            edit: { featureGroup: drawnItems }
+        });
+        map.addControl(drawControl);
+
+        map.on(L.Draw.Event.CREATED, function (event) {
+            var layer = event.layer;
+            drawnItems.addLayer(layer);
+            document.getElementById('coordinates').value = JSON.stringify(layer.getLatLngs());
+            document.getElementById('coordinates2').value = JSON.stringify(layer.getLatLngs());
+        });
+</script>
+{% endblock %}
+

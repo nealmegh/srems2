@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}My Site{% endblock %}</title>
+    <!-- Common CSS files -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    {% block extra_css %}
+
+    {% endblock %}
+</head>
+<body>
+    <header id="header">
+<!--         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">-->
+<!--&lt;!&ndash;              <div class="container-fluid">&ndash;&gt;-->
+<!--&lt;!&ndash;                <a class="navbar-brand" href="/">SII</a>&ndash;&gt;-->
+<!--&lt;!&ndash;                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">&ndash;&gt;-->
+<!--&lt;!&ndash;                  <span class="navbar-toggler-icon"></span>&ndash;&gt;-->
+<!--&lt;!&ndash;                </button>&ndash;&gt;-->
+<!--&lt;!&ndash;                <div class="collapse navbar-collapse" id="navbarNavAltMarkup">&ndash;&gt;-->
+<!--&lt;!&ndash;                  <div class="navbar-nav">&ndash;&gt;-->
+<!--&lt;!&ndash;                    <a class="nav-link active" aria-current="page" href="/">Home</a>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <a class="nav-link" href="/define-boundary">Selection View</a>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <a class="nav-link" href="{% url 'interpolated_network' %}">View My Data</a>&ndash;&gt;-->
+<!--&lt;!&ndash;                  </div>&ndash;&gt;-->
+<!--&lt;!&ndash;                </div>&ndash;&gt;-->
+<!--&lt;!&ndash;              </div>&ndash;&gt;-->
+<!--             <span style="color: white">Hello, {{request.user}}</span>-->
+<!--             <form action="{% url 'logout' %}" method="post">-->
+<!--                {% csrf_token %}-->
+<!--                <button type="submit" class="btn btn-danger">Logout</button>-->
+<!--            </form>-->
+<!--            </nav>-->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <div class="container-fluid">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-ex-7">
+           <span class="navbar-toggler-icon"></span>
+           </button>
+
+           <div class="collapse navbar-collapse" id="navbar-ex-7">
+           <div class="navbar-nav me-auto">
+              <a class="navbar-brand" href="/">SII</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                  <div class="navbar-nav">
+                    <a class="nav-link active" aria-current="page" href="/">Home</a>
+                    <a class="nav-link" href="/define-boundary">Selection View</a>
+                    {% if user.is_authenticated %}
+                    <a class="nav-link" href="{% url 'interpolated_network' %}">View My Data</a>
+                    {% endif %}
+                  </div>
+                </div>
+           </div>
+           <ul class="navbar-nav ms-lg-auto">
+              <li class="nav-item" style="margin-right: 15px">
+                 <span style="color: white">Hello, {{request.user}}</span>
+              </li>
+              <li class="nav-item">
+                 {% if user.is_authenticated %}
+                    <form action="{% url 'logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-primary">Login</a>
+                {% endif %}
+              </li>
+<!--              <li class="nav-item">-->
+<!--                 <a class="nav-link" href="javascript:void(0)"><i class="tf-icons navbar-icon bx bx-lock-open-alt"></i> Logout</a>-->
+<!--              </li>-->
+
+
+           </ul>
+           </div>
+          </div>
+        </nav>
+
+    </header>
+
+    <main>
+        {% block content %}
+        <!-- Content unique to each page -->
+        {% endblock %}
+    </main>
+
+    <footer>
+        <!-- Footer content -->
+    </footer>
+
+    <!-- Common JS files -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    {% block extra_js %}
+
+    {% endblock %}
+</body>
+</html>

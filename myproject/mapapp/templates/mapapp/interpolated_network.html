@@ -1,0 +1,60 @@
+
+
+{% extends 'mapapp/base.html' %}
+
+{% block title %}Interpolated Network{% endblock %}
+
+{% block extra_css %}
+
+{% endblock %}
+
+{% block content %}
+   <section id="content">
+        <div class="container-fluid mt-3">
+           <!-- user_data_list.html -->
+
+            {% if user_data %}
+                <table class="table table-success table-striped-columns">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Operator Name</th>
+                            <th>Coordinates</th>
+                            <th>Interpolation Technique</th>
+                            <th>Area</th>
+                            <th>Date Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in user_data %}
+                            <tr>
+                                <td>{{ record.id }}</td>
+                                <td>{{ record.operator_name }}</td>
+                                <td>{{ record.coordinates }}</td>
+                                <td>{{ record.interpolation_technique }}</td>
+                                <td>{{ record.area }}</td>
+                                <td>{{ record.creation_date|date:"Y-m-d H:i" }}</td>
+                                <td>
+                                    <a href="{% url 'display_interpolated_network' record.id %}" class="btn btn-primary">View</a>
+                                    <form action="{% url 'delete_record' record.id %}" method="post" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="submit" value="Delete" class="btn btn-danger" onclick="return confirm('Are you sure?');">
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No data available.</p>
+            {% endif %}
+
+
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_js %}
+
+{% endblock %}

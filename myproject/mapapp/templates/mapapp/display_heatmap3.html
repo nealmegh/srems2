@@ -1,0 +1,205 @@
+
+
+{% extends 'mapapp/base.html' %}
+
+{% block title %}Heat-Map{% endblock %}
+
+{% block extra_css %}
+
+{% endblock %}
+
+{% block content %}
+{% load custom_filters %}
+    <section id="content">
+        <div class="container-fluid mt-3">
+            <div class="row justify-content-end">
+                <div class="col-10 border-box" style="
+    border: black;
+    border-style: double;
+    padding: 0 !important;
+    border-width: thick;
+">
+                    {{ map_html|safe }}
+                </div>
+                <div class="col-2 border-box">
+
+           <table class="table table-success table-striped-columns">
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                </tr>
+
+                {% for key, value in OD_matrics.items %}
+                    <tr>
+                        <td>{{ key }}</td>
+                        <td>{{ value|parse_date }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+                </div>
+                <div class="col-12">
+                    <div class="metrics">
+        {% if interpolation_technique == 'RF_PCI' %}
+            <h2>Metrics for PCI based Random Forest on an area of {{ area|floatformat:2 }} square KM</h2>
+        {% elif interpolation_technique == 'RF' %}
+            <h2>Metrics for Random Forest on an area of {{ area|floatformat:2 }} square KM</h2>
+        {% elif interpolation_technique == 'RF_2' %}
+            <h2>Metrics for Random Forest version 2 on an area of {{ area|floatformat:2 }} square KM</h2>
+                         {% elif interpolation_technique == 'CNN' %}
+            <h2>Metrics for CNN on an area of {{ area|floatformat:2 }} square KM</h2>
+                         {% elif interpolation_technique == 'RNN' %}
+            <h2>Metrics for RNN on an area of {{ area|floatformat:2 }} square KM</h2>
+                         {% elif interpolation_technique == 'GAN' %}
+            <h2>Metrics for GAN on an area of {{ area|floatformat:2 }} square KM</h2>
+        {% elif interpolation_technique == 'OK_PCI' %}
+            <h2>Metrics for PCI based Ordinary Kriging on an area of {{ area|floatformat:2 }} square KM</h2>
+        {% elif interpolation_technique == 'OK' %}
+            <h2>Metrics for Ordinary Kriging on an area of {{ area|floatformat:2 }} square KM</h2>
+        {% elif interpolation_technique == 'IDW_PCI' %}
+            <h2>Metrics for PCI based Inverse Distance Weighting on an area of {{ area|floatformat:2 }} square KM</h2>
+        {% elif interpolation_technique == 'IDW' %}
+            <h2>Metrics for Inverse Distance Weighting on an area of {{ area|floatformat:2 }} square KM</h2>
+        {% elif interpolation_technique == 'DT_PCI' %}
+            <h2>Metrics for PCI based Decision Tree on an area of {{ area|floatformat:2 }} square KM</h2>
+        {% elif interpolation_technique == 'DT' %}
+            <h2>Metrics for Decision Tree on an area of {{ area|floatformat:2 }} square KM</h2>
+        {% endif %}
+        {% if interpolation_technique == 'RF_PCI' or interpolation_technique == 'IDW_PCI' or interpolation_technique == 'OK_PCI' or interpolation_technique == 'DT_PCI' %}
+        <table class="table table-success table-striped-columns">
+            <tr>
+                <th>PCI</th>
+                <th>Data Points</th>
+                <th>Training Time (s)</th>
+                <th>Prediction Time (s)</th>
+                <th>Execution Time (s)</th>
+                {% if interpolation_technique != 'OK_PCI' and interpolation_technique != 'IDW_PCI' %}
+                <th>Cross-validated RMSE</th>
+                {% endif %}
+                <th>MAE</th>
+                <th>RMSE</th>
+                <th>MBE</th>
+                <th>R2</th>
+                <th>Standard Deviation of Errors</th>
+            </tr>
+            {% for metric in metrics %}
+            <tr>
+
+                <td>{{ metric.PCI }}</td>
+                <td>{{ metric.Data_Points }}</td>
+                <td>{{ metric.Training_Time|floatformat:2 }}</td>
+                <td>{{ metric.Model_Prediction_Time|floatformat:2 }}</td>
+                <td>{{ metric.Model_Execution_Time|floatformat:2 }}</td>
+                {% if interpolation_technique != 'OK_PCI' and interpolation_technique != 'IDW_PCI' %}
+                <td>{{ metric.Cross_Validated_RMSE|floatformat:2 }}</td>
+                {% endif %}
+                <td>{{ metric.MAE|floatformat:2 }}</td>
+                <td>{{ metric.RMSE|floatformat:2 }}</td>
+                <td>{{ metric.MBE|floatformat:2 }}</td>
+                <td>{{ metric.R2|floatformat:2 }}</td>
+                <td>{{ metric.Standard_Deviation|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <tr>
+                <td><strong>Total/Average</strong></td>
+                <td>{{ metrics|sum_attribute:'Data_Points' }}</td>
+                <td>{{ metrics|sum_attribute:'Training_Time'|floatformat:2 }}</td>
+                <td>{{ metrics|sum_attribute:'Model_Prediction_Time'|floatformat:2 }}</td>
+                <td>{{ metrics|sum_attribute:'Model_Execution_Time'|floatformat:2 }}</td>
+                {% if interpolation_technique != 'OK_PCI' and interpolation_technique != 'IDW_PCI' %}
+                <td>{{ metrics|average_attribute:'Cross_Validated_RMSE'|floatformat:2 }}</td>
+                {% endif %}
+                <td>{{ metrics|average_attribute:'MAE'|floatformat:2 }}</td>
+                <td>{{ metrics|average_attribute:'RMSE'|floatformat:2 }}</td>
+                <td>{{ metrics|average_attribute:'MBE'|floatformat:2 }}</td>
+                <td>{{ metrics|average_attribute:'R2'|floatformat:2 }}</td>
+                <td>{{ metrics|average_attribute:'Standard_Deviation'|floatformat:2 }}</td>
+            </tr>
+        </table>
+            <canvas id="myChart" width="400" height="400"></canvas>
+        <script>
+    var dataPoints = JSON.parse('{{ chart_data.data_points|safe }}');
+    var rmseValues = JSON.parse('{{ chart_data.rmse_values|safe }}');
+    var r2Values = JSON.parse('{{ chart_data.r2_values|safe }}');
+
+    var ctx = document.getElementById('myChart').getContext('2d');
+    var myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dataPoints,
+            datasets: [{
+                label: 'RMSE',
+                data: rmseValues,
+                borderColor: 'red',
+                borderWidth: 1
+            }, {
+                label: 'R2',
+                data: r2Values,
+                borderColor: 'blue',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Number of Data Points'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Value'
+                    },
+                    beginAtZero: false
+                }
+            }
+        }
+    });
+</script>
+        {% endif %}
+{% if interpolation_technique == 'RF' or interpolation_technique == 'RF_2' or interpolation_technique == 'CNN' or interpolation_technique == 'RNN' or interpolation_technique == 'GAN' or interpolation_technique == 'IDW' or interpolation_technique == 'OK' or interpolation_technique == 'DT' %}
+    <table class="table table-success table-striped-columns">
+        <tr>
+            <th>Total Data Points</th>
+            <th>Training Duration (Seconds)</th>
+            <th>Prediction Duration (Seconds)</th>
+            <th>Total Exc. Duration (Seconds)</th>
+            {% if interpolation_technique != 'OK' and interpolation_technique != 'IDW' %}
+            <th>Cross-Validated RMSE</th>
+            {% endif %}
+            <th>MAE</th>
+            <th>RMSE</th>
+            <th>MBE</th>
+            <th>R2</th>
+            <th>Standard Deviation of Errors</th>
+        </tr>
+        <tr>
+            <td>{{ chart_context.data_points }}</td>
+            <td>{{ chart_context.duration|floatformat:2}}</td>
+            <td>{{ chart_context.prediction_duration|floatformat:2}}</td>
+            <td>{{ chart_context.execution_duration|floatformat:2}}</td>
+            {% if interpolation_technique != 'OK' and interpolation_technique != 'IDW' %}
+            <td>{{ chart_context.cross_validated_rmse|floatformat:2 }}</td>
+            {% endif %}
+            <td>{{ chart_context.mae_values|floatformat:2 }}</td>
+            <td>{{ chart_context.rmse_values|floatformat:2 }}</td>
+            <td>{{ chart_context.mbe_values|floatformat:2 }}</td>
+            <td>{{ chart_context.r2_values|floatformat:2 }}</td>
+            <td>{{ chart_context.std_dev_values|floatformat:2 }}</td>
+        </tr>
+    </table>
+{% endif %}
+
+    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_js %}
+
+{% endblock %}
