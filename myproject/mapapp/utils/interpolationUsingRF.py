@@ -21,7 +21,7 @@ class InterpolationUsingRF:
         } for r in results])
 
     def train_model(self):
-        if len(self.df) < 5:  # Threshold for minimum number of samples
+        if len(self.df) < 5:
             print("Not enough data to train the model.")
             return
 

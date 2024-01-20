@@ -110,7 +110,7 @@ class OSMCoordinates:
         :return: Dictionary with OSM IDs and coordinates of roads lacking data.
         """
         # Retrieve the graph of all streets within the specified polygon
-        graph = ox.graph_from_polygon(self.polygon, network_type='all')
+        graph = ox.graph_from_polygon(self.polygon, network_type='drive')
         edges = ox.graph_to_gdfs(graph, nodes=False, edges=True)
 
         roads_without_data = {}

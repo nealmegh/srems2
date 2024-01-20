@@ -2,7 +2,7 @@
 
 {% extends 'mapapp/base.html' %}
 
-{% block title %}Heat-Map{% endblock %}
+{% block title %}Heat-Map - {{interpolation_technique}}{% endblock %}
 
 {% block extra_css %}
 
@@ -40,29 +40,29 @@
                 <div class="col-12">
                     <div class="metrics">
         {% if interpolation_technique == 'RF_PCI' %}
-            <h2>Metrics for PCI based Random Forest on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>PCI based Random Forest on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'RF' %}
-            <h2>Metrics for Random Forest on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>Random Forest on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'RF_2' %}
-            <h2>Metrics for Random Forest version 2 on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>Random Forest version 2 on an area of {{ area|floatformat:2 }} square KM</h2>
                          {% elif interpolation_technique == 'CNN' %}
-            <h2>Metrics for CNN on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>CNN on an area of {{ area|floatformat:2 }} square KM</h2>
                          {% elif interpolation_technique == 'RNN' %}
-            <h2>Metrics for RNN on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>RNN on an area of {{ area|floatformat:2 }} square KM</h2>
                          {% elif interpolation_technique == 'GAN' %}
-            <h2>Metrics for GAN on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>GAN on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'OK_PCI' %}
-            <h2>Metrics for PCI based Ordinary Kriging on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>PCI based Ordinary Kriging on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'OK' %}
-            <h2>Metrics for Ordinary Kriging on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>Ordinary Kriging on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'IDW_PCI' %}
-            <h2>Metrics for PCI based Inverse Distance Weighting on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>PCI based Inverse Distance Weighting on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'IDW' %}
-            <h2>Metrics for Inverse Distance Weighting on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>Inverse Distance Weighting on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'DT_PCI' %}
-            <h2>Metrics for PCI based Decision Tree on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>PCI based Decision Tree on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'DT' %}
-            <h2>Metrics for Decision Tree on an area of {{ area|floatformat:2 }} square KM</h2>
+            <h2>Decision Tree on an area of {{ area|floatformat:2 }} square KM</h2>
         {% endif %}
         {% if interpolation_technique == 'RF_PCI' or interpolation_technique == 'IDW_PCI' or interpolation_technique == 'OK_PCI' or interpolation_technique == 'DT_PCI' %}
         <table class="table table-success table-striped-columns">

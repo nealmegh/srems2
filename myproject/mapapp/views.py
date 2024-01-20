@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import InterpolatedNetwork
 from django.views.decorators.http import require_POST
@@ -50,7 +51,7 @@ from datetime import datetime
 from branca.element import Template, MacroElement
 from django.contrib.auth.forms import UserCreationForm
 import csv
-
+# from geopy.distance import geodesic
 
 def define_boundary_view(request):
     return render(request, 'mapapp/define_boundary.html')
@@ -160,6 +161,35 @@ def area_calculate(geo_polygon):
     return area_meters / 1_000_000
 
 
+def calculate_area_sq_km(coordinates):
+    """
+    Calculate the area of a polygon in square kilometers given its vertices' coordinates.
+    """
+    cartesian_coords = np.array([latlong_to_cartesian(lat, lon) for lat, lon in coordinates])
+
+    x = cartesian_coords[:, 0]
+    y = cartesian_coords[:, 1]
+    area = 0.5*np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+
+    return area / 1e6
+
+
+def latlong_to_cartesian(lon, lat):
+    """
+    Convert longitude and latitude to Cartesian coordinates.
+    """
+    # Constants for the WGS84 ellipsoid model of the Earth
+    WGS84_RADIUS = 6378137.0  # Earth's radius in meters
+    WGS84_ECCENTRICITY = 0.081819190842622
+
+    lat_rad = np.radians(lat)
+    lon_rad = np.radians(lon)
+
+    N = WGS84_RADIUS / np.sqrt(1 - WGS84_ECCENTRICITY ** 2 * np.sin(lat_rad) ** 2)
+    X = N * np.cos(lat_rad) * np.cos(lon_rad)
+    Y = N * np.cos(lat_rad) * np.sin(lon_rad)
+
+    return X, Y
 def map_view(request):
     return render(request, 'mapapp/map.html')
 
@@ -177,7 +207,11 @@ def display_interpolated_network(request, network_id):
     result_data = process_results(results)
     OD_matrics = process_network_data(result_data)
     shapely_polygon = ShapelyPolygon(coordinates_tuples)
-    area = area_calculate(shapely_polygon)
+    # area = area_calculate(shapely_polygon)
+    # area = calculate_area_sq_km(coordinates_tuples)
+    # print(coordinates_tuples)
+    # print('area')
+    # print(area_2)
     interpolated_results = interpolated_network.interpolated_data
     metrics = interpolated_network.metrics
     combined_data = combine_data(result_data, interpolated_results)
@@ -191,7 +225,7 @@ def display_interpolated_network(request, network_id):
             'metrics': metrics,
             'chart_context': chart_context,
             'interpolation_technique': interpolation_technique,
-            'area': area,
+            'area': interpolated_network.area,
             'summary_metrics': summary_metrics,
             'OD_matrics': OD_matrics
         })
@@ -217,7 +251,8 @@ def display_heatmap_view(request):
     result_data = process_results(results)
     OD_matrics = process_network_data(result_data)
     shapely_polygon = ShapelyPolygon(coordinates_tuples)
-    area = area_calculate(shapely_polygon)
+    # area = area_calculate(shapely_polygon)
+    area = calculate_area_sq_km(coordinates_tuples)
     coords_map, all_coords = get_osm_coordinates(shapely_polygon, results, interpolation_technique)
     # print(len(result_data))
     interpolated_results, metrics = perform_interpolation(interpolation_technique, results, all_coords)
@@ -957,7 +992,8 @@ def user_specific_interpolated_network(request):
         return redirect('login')
 
     # Fetch data specific to the logged-in user
-    user_data = InterpolatedNetwork.objects.filter(user=request.user)
+    # user_data = InterpolatedNetwork.objects.filter(user=request.user)
+    user_data = InterpolatedNetwork.objects.filter(user=request.user).order_by('id')
 
     return render(request, 'mapapp/interpolated_network.html', {'user_data': user_data})
 
@@ -976,7 +1012,7 @@ def download_csv_view(request):
         coordinates_string = request.POST.get('coordinates')
         coordinates_tuples = process_coordinates(coordinates_string)
         polygon = Polygon(coordinates_tuples)
-        results = fetch_network_data(polygon, operator_name, dataSelection)
+        results = fetch_network_data(polygon, operator_name, dataSelection, coordinates_tuples)
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="network_data.csv"'
 
@@ -1030,3 +1066,28 @@ def process_csv_data(csv_data, polygon, operator_name, data_selection):
                 processed_data.append(row)
 
     return processed_data
+
+
+def update_interpolated_network_areas(request):
+    try:
+        networks = InterpolatedNetwork.objects.all()
+        for network in networks:
+            # Parse the JSON string in the coordinates field
+            coordinates_string = network.coordinates
+            coordinates_tuples = process_coordinates(coordinates_string)
+            # Flatten the list if it's nested and convert it to the required format
+            # coordinates = [(coord['lng'], coord['lat']) for sublist in coordinates_json for coord in sublist]
+
+            # Calculate the area using the coordinates
+            area_sq_km = calculate_area_sq_km(coordinates_tuples)
+            print(str(network.id) + ' write ' + str(area_sq_km))
+            # Update the area field of the network
+            network.area = area_sq_km
+            network.save()
+
+        return HttpResponse("Area updated for all interpolated networks.", status=200)
+
+    except ObjectDoesNotExist:
+        return HttpResponse("No records found.", status=404)
+    except Exception as e:
+        return HttpResponse(f"An error occurred: {e}", status=500)

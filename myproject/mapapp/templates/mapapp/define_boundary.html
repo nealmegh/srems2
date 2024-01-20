@@ -39,51 +39,114 @@
                             <form method="post" action="{% url 'display_heatmap' %}" id="interpolationResult">
                             {% csrf_token %}
                                 <div class="mb-3">
-                                  <label for="operatorName" class="form-label">Operator Name</label>
-                                  <select class="form-select form-select-lg mb-3" aria-label="Large select example" id="operatorName" name="operatorName">
-                                    <option value="3">Three</option>
-                                    <option value="EE">EE</option>
-                                    <option value="vodafone UK">Vodafone UK</option>
-                                    <option value="O2 - UK">O2 UK</option>
-                                    </select>
+                                  <label for="operatorName" class="form-label"><h5>Operator Name</h5></label>
+<!--                                  <select class="form-select form-select-lg mb-3" aria-label="Large select example" id="operatorName" name="operatorName">-->
+<!--                                    <option value="3">Three</option>-->
+<!--                                    <option value="EE">EE</option>-->
+<!--                                    <option value="vodafone UK">Vodafone UK</option>-->
+<!--                                    <option value="O2 - UK">O2 UK</option>-->
+<!--                                    </select>-->
+                                    <div class="mb-3">
+    <input type="radio" id="Three" name="operatorName" value="3">
+    <label for="Three">Three</label><br>
+
+    <input type="radio" id="EE" name="operatorName" value="EE">
+    <label for="EE">EE</label><br>
+
+    <input type="radio" id="VodafoneUK" name="operatorName" value="vodafone UK">
+    <label for="VodafoneUK">Vodafone UK</label><br>
+
+    <input type="radio" id="O2UK" name="operatorName" value="O2 - UK">
+    <label for="O2UK">O2 UK</label><br>
+</div>
                                 </div>
                                 <div class="mb-3">
-                                  <label for="dataSelection" class="form-label">Data Selection</label>
-                                  <select id="dataSelection" class="form-select form-select-lg mb-3" name="dataSelection">
-                                        <option value="CD">Complete Data</option>
-                                        <option value="BD">Boundary Data</option>
-                                        <!-- other options -->
-                                  </select>
+<!--                                  <label for="dataSelection" class="form-label">Data Selection</label>-->
+<!--                                  <select id="dataSelection" class="form-select form-select-lg mb-3" name="dataSelection">-->
+<!--                                        <option value="CD">Complete Data</option>-->
+<!--                                        <option value="BD">Boundary Data</option>-->
+<!--                                        &lt;!&ndash; other options &ndash;&gt;-->
+<!--                                  </select>-->
+                                    <label for="dataSelection" class="form-label"> <h5>Data Selection</h5> </label>
+<div class="mb-3">
+    <input type="radio" id="CD" name="dataSelection" value="CD">
+    <label for="CD">Complete Data</label><br>
+
+    <input type="radio" id="BD" name="dataSelection" value="BD">
+    <label for="BD">Boundary Data</label><br>
+
+    <!-- Insert other options if there are any -->
+</div>
                                 </div>
                                 <div class="mb-3">
+                                    <label for="" class="form-label"><h5> Data Source </h5></label>
                                     <div>
-                                        <label>Use existing database data</label>
                                         <input type="radio" name="data_source" value="database" checked>
+                                        <label>Use existing database data</label>
                                     </div>
                                     <div>
-                                        <label>Upload CSV</label>
                                         <input type="radio" name="data_source" value="csv">
+                                        <label>Upload CSV</label>
                                         <input type="file" name="data_file" accept=".csv">
                                     </div>
                                 </div>
                                  <div class="mb-3">
-                                  <label for="InterpolationTechnique" class="form-label">Interpolation Model</label>
-                                  <select id="InterpolationTechnique" class="form-select form-select-lg mb-3" name="InterpolationTechnique">
-                                        <option value="OD">Original Data</option>
-                                        <option value="RF">Random Forest</option>
-                                        <option value="RF_2">Random Forest (V2)</option>
-<!--                                        <option value="CNN">CNN</option>-->
-<!--                                        <option value="RNN">RNN</option>-->
-                                        <option value="GAN">GAN</option>
-                                        <option value="RF_PCI">Random Forest(PCI Based)</option>
-                                        <option value="DT">Decision Tree</option>
-                                        <option value="DT_PCI">Decision Tree(PCI Based)</option>
-                                        <option value="IDW">IDW</option>
-                                        <option value="IDW_PCI">IDW(PCI Based)</option>
-                                        <option value="OK">Ordinary Kriging</option>
-                                        <option value="OK_PCI">Ordinary Kriging(PCI Based)</option>
-                                        <!-- other options -->
-                                  </select>
+<!--                                  <label for="InterpolationTechnique" class="form-label">Interpolation Model</label>-->
+<!--                                  <select id="InterpolationTechnique" class="form-select form-select-lg mb-3" name="InterpolationTechnique">-->
+<!--                                        <option value="OD">Original Data</option>-->
+<!--                                        <option value="RF">Random Forest</option>-->
+<!--                                        <option value="RF_2">Random Forest (V2)</option>-->
+<!--&lt;!&ndash;                                        <option value="CNN">CNN</option>&ndash;&gt;-->
+<!--&lt;!&ndash;                                        <option value="RNN">RNN</option>&ndash;&gt;-->
+<!--                                        <option value="GAN">GAN</option>-->
+<!--                                        <option value="RF_PCI">Random Forest(PCI Based)</option>-->
+<!--                                        <option value="DT">Decision Tree</option>-->
+<!--                                        <option value="DT_PCI">Decision Tree(PCI Based)</option>-->
+<!--                                        <option value="IDW">IDW</option>-->
+<!--                                        <option value="IDW_PCI">IDW(PCI Based)</option>-->
+<!--                                        <option value="OK">Ordinary Kriging</option>-->
+<!--                                        <option value="OK_PCI">Ordinary Kriging(PCI Based)</option>-->
+<!--                                        &lt;!&ndash; other options &ndash;&gt;-->
+<!--                                  </select>-->
+<label for="InterpolationTechnique" class="form-label"><h5>Interpolation Model</h5></label>
+<div class="mb-3">
+    <input type="radio" id="OD" name="InterpolationTechnique" value="OD">
+    <label for="OD">Original Data</label><br>
+
+    <input type="radio" id="RF" name="InterpolationTechnique" value="RF">
+    <label for="RF">Random Forest</label><br>
+
+    <input type="radio" id="RF_2" name="InterpolationTechnique" value="RF_2">
+    <label for="RF_2">Random Forest (V2)</label><br>
+
+    <!-- Options CNN and RNN are commented out in your dropdown, so they are not included here -->
+
+    <input type="radio" id="GAN" name="InterpolationTechnique" value="GAN">
+    <label for="GAN">GAN</label><br>
+
+    <input type="radio" id="RF_PCI" name="InterpolationTechnique" value="RF_PCI">
+    <label for="RF_PCI">Random Forest(PCI Based)</label><br>
+
+    <input type="radio" id="DT" name="InterpolationTechnique" value="DT">
+    <label for="DT">Decision Tree</label><br>
+
+    <input type="radio" id="DT_PCI" name="InterpolationTechnique" value="DT_PCI">
+    <label for="DT_PCI">Decision Tree(PCI Based)</label><br>
+
+    <input type="radio" id="IDW" name="InterpolationTechnique" value="IDW">
+    <label for="IDW">IDW</label><br>
+
+    <input type="radio" id="IDW_PCI" name="InterpolationTechnique" value="IDW_PCI">
+    <label for="IDW_PCI">IDW(PCI Based)</label><br>
+
+    <input type="radio" id="OK" name="InterpolationTechnique" value="OK">
+    <label for="OK">Ordinary Kriging</label><br>
+
+    <input type="radio" id="OK_PCI" name="InterpolationTechnique" value="OK_PCI">
+    <label for="OK_PCI">Ordinary Kriging(PCI Based)</label><br>
+
+    <!-- Insert other options if there are any -->
+</div>
                                 </div>
 
                             <input id="coordinates" name="coordinates" type="hidden" value=''>

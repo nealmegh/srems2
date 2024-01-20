@@ -23,9 +23,9 @@ class NetworkData(models.Model):
     cellId_TAC = models.CharField(max_length=255)
     location = models.PointField(null=True)  # Add this line
 
-    # def save(self, *args, **kwargs):
-    #     self.location = Point(self.longitude, self.latitude)
-    #     super().save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        self.location = Point(self.longitude, self.latitude)
+        super().save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
         # Convert latitude and longitude to float, if possible
