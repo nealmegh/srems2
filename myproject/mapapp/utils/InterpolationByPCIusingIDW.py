@@ -11,13 +11,21 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 class IDWInterpolationByPCI:
 
-    def __init__(self, results, min_samples_per_pci=60):
-        self.df = pd.DataFrame([{
-            'latitude': r.latitude,
-            'longitude': r.longitude,
-            'PCI': r.cellId_PCI,
-            'signalStrength': r.signalStrength
-        } for r in results])
+    def __init__(self, results, data_source, min_samples_per_pci=60):
+        if data_source != 'csv':
+            self.df = pd.DataFrame([{
+                'latitude': r.latitude,
+                'longitude': r.longitude,
+                'PCI': r.cellId_PCI,
+                'signalStrength': r.signalStrength
+            } for r in results])
+        else:
+            self.df = pd.DataFrame([{
+                'latitude': float(r['latitude']),
+                'longitude': float(r['longitude']),
+                'PCI': int(r['cellId_PCI']),
+                'signalStrength': int(r['signalStrength'])
+            } for r in results])
         self.power = 2
         # self.pci_groups = self.df.groupby('PCI')
         self.pci_groups = self.df.groupby('PCI').filter(lambda x: len(x) >= min_samples_per_pci).groupby('PCI')

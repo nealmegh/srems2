@@ -20,13 +20,21 @@ class InterpolationByPCIUsingKriging:
     #     self.kriging_models = {}
     #     self.point_zero = {}
     #     self.boundaries = {}
-    def __init__(self, results, min_samples_per_pci=60):
-        self.df = pd.DataFrame([{
-            'latitude': r.latitude,
-            'longitude': r.longitude,
-            'PCI': r.cellId_PCI,
-            'signalStrength': r.signalStrength
-        } for r in results])
+    def __init__(self, results, data_source, min_samples_per_pci=60):
+        if data_source != 'csv':
+            self.df = pd.DataFrame([{
+                'latitude': r.latitude,
+                'longitude': r.longitude,
+                'PCI': r.cellId_PCI,
+                'signalStrength': r.signalStrength
+            } for r in results])
+        else:
+            self.df = pd.DataFrame([{
+                'latitude': float(r['latitude']),
+                'longitude': float(r['longitude']),
+                'PCI': int(r['cellId_PCI']),
+                'signalStrength': int(r['signalStrength'])
+            } for r in results])
 
         # Filter out PCI groups with insufficient data
         self.pci_groups = self.df.groupby('PCI').filter(lambda x: len(x) >= min_samples_per_pci).groupby('PCI')

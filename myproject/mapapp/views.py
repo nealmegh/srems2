@@ -1,6 +1,9 @@
+import time
+from .forms import CustomUserCreationForm
+from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import InterpolatedNetwork
+from .models import InterpolatedNetwork, UserProfile
 from django.views.decorators.http import require_POST
 from django.http import HttpResponse
 from io import StringIO
@@ -21,6 +24,7 @@ import branca.colormap as cm
 from django.shortcuts import render
 from .models import NetworkData
 from .utils.road_coverage_checker import RoadCoverageChecker
+from .utils.osmapi_coordinates import OSMCoordinatesOSMAPI
 from .utils.osm_coordinates import OSMCoordinates
 from .utils.interpolationByPciUsingRF import InterpolationByPciUsingRF
 from .utils.interpolationUsingRF import InterpolationUsingRF
@@ -51,26 +55,51 @@ from datetime import datetime
 from branca.element import Template, MacroElement
 from django.contrib.auth.forms import UserCreationForm
 import csv
+from django.contrib import messages
+
+
 # from geopy.distance import geodesic
 
 def define_boundary_view(request):
-    return render(request, 'mapapp/define_boundary.html')
+    if request.user.is_authenticated:
+        # Assuming you have a one-to-one relationship to a UserProfile model
+        has_access = getattr(request.user.userprofile, 'access_right', False)
+    else:
+        has_access = False
+
+    context = {
+        'has_access': has_access,
+    }
+    return render(request, 'mapapp/define_boundary.html', context)
+
+
+def update_user(request):
+
+    user = get_object_or_404(User, username='abrar')
+    profile, created = UserProfile.objects.get_or_create(user=user)
+    profile.access_right = True  # or False, based on your logic
+    profile.save()
+
+
+
+    return HttpResponse('User updated successfully.')
 
 
 def calculate_distance(point1, point2):
-    R = 6371.0
+    R = 6371.0  # Radius of the Earth in km
 
-    lat1 = math.radians(point1['latitude'])
-    lon1 = math.radians(point1['longitude'])
-    lat2 = math.radians(point2['latitude'])
-    lon2 = math.radians(point2['longitude'])
+    lat1 = math.radians(float(point1['latitude']))
+    lon1 = math.radians(float(point1['longitude']))
+    lat2 = math.radians(float(point2['latitude']))
+    lon2 = math.radians(float(point2['longitude']))
 
     dlon = lon2 - lon1
     dlat = lat2 - lat1
 
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    # In KM
+
+    # Distance in meters
     distance = R * c * 1000
     return distance
 
@@ -86,7 +115,8 @@ def process_network_data(data):
 
     prev_item = None
     for item in sorted(data, key=lambda x: x['gpsUpdateTime']):
-        signalStrengths.append(item['signalStrength'])
+        signalStrengths.append(int(item['signalStrength']))
+        # signalStrengths.append(float(item['signalStrength']))
         channelBands.add(item['channelBands'])
 
         if prev_item:
@@ -116,7 +146,8 @@ def process_network_data(data):
     NSACoverage = round(NSACoverage / 1000, 2)
     totalDistance = round(totalDistance / 1000, 2)
 
-    NSAPercent = round((NSACoverage / totalDistance) * 100, 2) if totalDistance else 0
+    # NSAPercent = round((NSACoverage / totalDistance) * 100, 2) if totalDistance else 0
+    NSAPercent = round((float(NSACoverage) / float(totalDistance)) * 100, 2) if totalDistance else 0
     SD = round(np.std(signalStrengths), 2)
     mean = round(np.mean(signalStrengths), 2)
     median = round(np.median(signalStrengths), 2)
@@ -126,8 +157,9 @@ def process_network_data(data):
     # startDate = datetime.fromtimestamp(startDate / 1000)  # Assuming Unix timestamp in milliseconds
     # endDate = datetime.fromtimestamp(endDate / 1000)
 
-    startDate = datetime.fromtimestamp(startDate / 1000).isoformat()  # Convert to ISO format string
-    endDate = datetime.fromtimestamp(endDate / 1000).isoformat()
+    startDate = datetime.fromtimestamp(float(startDate) / 1000).isoformat() # Convert to ISO format string
+    endDate = datetime.fromtimestamp(float(endDate) / 1000).isoformat()
+
 
     return {
         'Operator Name': operator,
@@ -142,7 +174,7 @@ def process_network_data(data):
         'LTE Inter': LTEInter,
         'NSA Inter': NSAInter,
         'NSA Intra': NSAIntra,
-        'Channel Bands':  [int(band.strip('[]')) for band in channelBands],
+        'Channel Bands': [int(band.strip('[]')) for band in channelBands],
         'SD': SD,
         'Mean': mean,
         'Median': median
@@ -169,7 +201,7 @@ def calculate_area_sq_km(coordinates):
 
     x = cartesian_coords[:, 0]
     y = cartesian_coords[:, 1]
-    area = 0.5*np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+    area = 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
     return area / 1e6
 
@@ -190,12 +222,13 @@ def latlong_to_cartesian(lon, lat):
     Y = N * np.cos(lat_rad) * np.sin(lon_rad)
 
     return X, Y
+
+
 def map_view(request):
     return render(request, 'mapapp/map.html')
 
 
 def display_interpolated_network(request, network_id):
-
     interpolated_network = get_object_or_404(InterpolatedNetwork, id=network_id, user=request.user)
     operator_name = interpolated_network.operator_name
     dataSelection = interpolated_network.data_selection
@@ -204,7 +237,7 @@ def display_interpolated_network(request, network_id):
     coordinates_tuples = process_coordinates(coordinates_string)
     polygon = Polygon(coordinates_tuples)
     results = fetch_network_data(polygon, operator_name, dataSelection, coordinates_tuples)
-    result_data = process_results(results)
+    result_data = process_results(results, data_source='database')
     OD_matrics = process_network_data(result_data)
     shapely_polygon = ShapelyPolygon(coordinates_tuples)
     # area = area_calculate(shapely_polygon)
@@ -221,41 +254,63 @@ def display_interpolated_network(request, network_id):
     summary_metrics = interpolated_network.summary_metrics
 
     return render(request, 'mapapp/display_heatmap3.html', {
-            'map_html': map_html,
-            'metrics': metrics,
-            'chart_context': chart_context,
-            'interpolation_technique': interpolation_technique,
-            'area': interpolated_network.area,
-            'summary_metrics': summary_metrics,
-            'OD_matrics': OD_matrics
-        })
+        'map_html': map_html,
+        'metrics': metrics,
+        'chart_context': chart_context,
+        'interpolation_technique': interpolation_technique,
+        'area': interpolated_network.area,
+        'summary_metrics': summary_metrics,
+        'OD_matrics': OD_matrics
+    })
 
 
 def display_heatmap_view(request):
     if request.method != 'POST':
         return redirect('define_boundary')
-    print('I am here to interpolate')
-    operator_name, coordinates_string, dataSelection, interpolation_technique = get_post_data(request)
+
+    # operator_name, coordinates_string, dataSelection, interpolation_technique = get_post_data(request)
+    try:
+        # Attempt to extract data from POST request
+        operator_name = request.POST['operatorName']
+        coordinates_string = request.POST['coordinates']
+        dataSelection = request.POST['dataSelection']
+        interpolation_technique = request.POST['InterpolationTechnique']
+        print(operator_name, coordinates_string, interpolation_technique)
+    except KeyError:
+        messages.error(request, 'Missing required data. Please Make sure to draw polygon and select the proper options')
+        return redirect('define_boundary')
+
     coordinates_tuples = process_coordinates(coordinates_string)
+
     polygon = Polygon(coordinates_tuples)
     # results = fetch_network_data(polygon, operator_name, dataSelection)
     data_source = request.POST.get('data_source', 'database')
 
+    if not request.FILES.get('data_file'):
+        messages.warning(request, 'No Files uploaded')
+        return redirect('define_boundary')
     if data_source == 'csv' and request.FILES.get('data_file'):
         csv_file = request.FILES['data_file']
         csv_data = csv.DictReader(StringIO(csv_file.read().decode('utf-8')))
         results = process_csv_data(list(csv_data), polygon, operator_name, dataSelection)
+        print('done')
     else:
         results = fetch_network_data(polygon, operator_name, dataSelection, coordinates_tuples)
+    if not results:
+        messages.warning(request, 'No data found for the specified area and/or criteria.')
+        return redirect('define_boundary')
 
-    result_data = process_results(results)
+    result_data = process_results(results, data_source)
     OD_matrics = process_network_data(result_data)
     shapely_polygon = ShapelyPolygon(coordinates_tuples)
     # area = area_calculate(shapely_polygon)
     area = calculate_area_sq_km(coordinates_tuples)
-    coords_map, all_coords = get_osm_coordinates(shapely_polygon, results, interpolation_technique)
-    # print(len(result_data))
-    interpolated_results, metrics = perform_interpolation(interpolation_technique, results, all_coords)
+    interpolated_results = []
+    metrics = []
+    if interpolation_technique != 'OD':
+        coords_map, all_coords = get_osm_coordinates(shapely_polygon, results, interpolation_technique, coordinates_tuples,
+                                                 result_data, data_source)
+        interpolated_results, metrics = perform_interpolation(interpolation_technique, results, all_coords, data_source)
     combined_data = combine_data(result_data, interpolated_results)
     folium_map = create_folium_map(shapely_polygon, combined_data, result_data)
     map_html = folium_map._repr_html_()
@@ -618,10 +673,23 @@ def process_coordinates(coordinates_string):
     return coordinates_tuples
 
 
-def get_osm_coordinates(shapely_polygon, results, interpolation_technique):
-    coords_obj = OSMCoordinates(shapely_polygon, results)
+def get_osm_coordinates(shapely_polygon, results, interpolation_technique, coordinates_tuples, result_data, data_source):
+    start_time = time.time()
+    coords_obj = OSMCoordinates(shapely_polygon, results, data_source)
     coords_map = coords_obj.get_road_coordinates_without_data()
     all_coords = [coord for sublist in coords_map.values() for coord in sublist if sublist]
+
+    # different
+    # checker = RoadCoverageChecker(coordinates_tuples, result_data)
+    # uncovered_road_ids = checker.get_uncovered_road_ids()
+    # coords_obj = OSMCoordinatesOSMAPI()
+    # coords_map = coords_obj.get_coordinates_for_ids(uncovered_road_ids)
+    # all_coords = [coord for sublist in coords_map.values() for coord in sublist if sublist]
+
+    end_time = time.time()
+    exec_time = end_time - start_time
+    print('execution time')
+    print(exec_time)
     return coords_map, all_coords
 
 
@@ -664,16 +732,54 @@ def fetch_network_data(polygon, operator_name, dataSelection, coordinates_tuples
         results.extend(NetworkData.objects.filter(location__intersects=ring_area, operatorName=operator_name))
 
     return results
+# def buffer_and_transform_polygon(coordinates_tuples, buffer_distance_meters=50):
+#     """Buffer the polygon and transform its coordinate system."""
+#     linear_ring = LinearRing(coordinates_tuples)
+#     polygon = Polygon(linear_ring)
+#     polygon.srid = 4326
+#     polygon.transform(32630)
+#     buffered_polygon = polygon.buffer(buffer_distance_meters)
+#     buffered_polygon.transform(4326)
+#     return buffered_polygon
+#
+#
+# def fetch_network_data(request, polygon, operator_name, dataSelection, coordinates_tuples):
+#     results = []
+#
+#     try:
+#         if dataSelection == 'CD':
+#             query_results = NetworkData.objects.filter(location__within=polygon, operatorName=operator_name)
+#             if query_results.exists():
+#                 results.extend(query_results)
+#
+#         if dataSelection in ['CD', 'BD']:
+#             buffered_polygon = buffer_and_transform_polygon(coordinates_tuples)
+#             ring_area = buffered_polygon.difference(polygon)
+#             query_results = NetworkData.objects.filter(location__intersects=ring_area, operatorName=operator_name)
+#             if query_results.exists():
+#                 results.extend(query_results)
+#
+#         # Check if results list is empty after fetching data
+#         if not results:
+#             messages.warning(request, 'No data found for the specified area and criteria.')
+#             return redirect('define_boundary')
+#
+#     except Exception as e:
+#         # General error handling (e.g., issues with the database, spatial operations, etc.)
+#         messages.error(request, f'An error occurred while fetching data: {e}')
+#         return redirect('define_boundary')
+#
+#     return results
 
 
-def perform_interpolation(interpolation_technique, results, all_coords):
+def perform_interpolation(interpolation_technique, results, all_coords, data_source):
     interpolated_results = []
     metrics = []
 
     if interpolation_technique == 'RF_PCI':
         print('RF_PCI')
         print(len(all_coords))
-        CRF = InterpolationByPciUsingRF(results)
+        CRF = InterpolationByPciUsingRF(results, data_source)
         metrics = CRF.train_pci_models()
         interpolated_results, model_prediction_times = CRF.predict(all_coords)
         for metric in metrics:
@@ -684,12 +790,10 @@ def perform_interpolation(interpolation_technique, results, all_coords):
             metric['Model_Execution_Time'] = training_time + prediction_time
             metric['Model_Prediction_Time'] = prediction_time
 
-        print(metrics)
-
     elif interpolation_technique == 'RF':
         print('RF')
         # print(len(all_coords))
-        RF = InterpolationUsingRF(results)
+        RF = InterpolationUsingRF(results, data_source)
         metrics = RF.train_model()
         interpolated_results, prediction_time = RF.predict(all_coords)
         metrics['Prediction Time'] = prediction_time
@@ -697,7 +801,7 @@ def perform_interpolation(interpolation_technique, results, all_coords):
     elif interpolation_technique == 'RF_2':
         print('RF_2')
         # print(len(all_coords))
-        RF = InterpolationUsingRFV2(results)
+        RF = InterpolationUsingRFV2(results, data_source)
         metrics = RF.train_model()
         interpolated_results, prediction_time = RF.predict(all_coords)
         metrics['Prediction Time'] = prediction_time
@@ -717,14 +821,14 @@ def perform_interpolation(interpolation_technique, results, all_coords):
     elif interpolation_technique == 'GAN':
         print('GAN')
         # print(len(all_coords))
-        GAN = InterpolationUsingGAN(results)
+        GAN = InterpolationUsingGAN(results, data_source)
         metrics = GAN.train_model()
         interpolated_results, prediction_time = GAN.predict(all_coords)
         metrics['Prediction Time'] = prediction_time
         metrics['Total Execution time'] = metrics['Training Duration (seconds)'] + prediction_time
     elif interpolation_technique == 'IDW':
         print('IDW')
-        IDW = SignalStrengthInterpolatorIDW(results)
+        IDW = SignalStrengthInterpolatorIDW(results, data_source)
         metrics = IDW.calculate_performance_metrics()
         interpolated_results, prediction_time = IDW.predict(all_coords)
         metrics['Prediction Time'] = prediction_time
@@ -732,7 +836,7 @@ def perform_interpolation(interpolation_technique, results, all_coords):
         # print(interpolated_results)
     elif interpolation_technique == 'IDW_PCI':
         print('IDW_PCI')
-        IDW_PCI = IDWInterpolationByPCI(results)
+        IDW_PCI = IDWInterpolationByPCI(results, data_source)
         metrics = IDW_PCI.calculate_pci_metrics()
         interpolated_results, model_prediction_times = IDW_PCI.predict(all_coords)
         for metric in metrics:
@@ -744,14 +848,14 @@ def perform_interpolation(interpolation_technique, results, all_coords):
             metric['Model_Prediction_Time'] = prediction_time
     elif interpolation_technique == 'OK':
         print('OK')
-        OK = InterpolationUsingKriging(results)
+        OK = InterpolationUsingKriging(results, data_source)
         metrics = OK.cross_validate()
         interpolated_results, prediction_time = OK.predict(all_coords)
         metrics['Prediction Time'] = prediction_time
         metrics['Total Execution time'] = metrics['Training Duration (seconds)'] + prediction_time
     elif interpolation_technique == 'OK_PCI':
         print('OK_PCI')
-        OK_PCI = InterpolationByPCIUsingKriging(results)
+        OK_PCI = InterpolationByPCIUsingKriging(results, data_source)
         metrics = OK_PCI.cross_validate()
         interpolated_results, model_prediction_times = OK_PCI.predict(all_coords)
         for metric in metrics:
@@ -764,7 +868,7 @@ def perform_interpolation(interpolation_technique, results, all_coords):
         # print(interpolated_results)
     elif interpolation_technique == 'DT_PCI':
         print('DT_PCI')
-        CDT = InterpolationByPciUsingDT(results)
+        CDT = InterpolationByPciUsingDT(results, data_source)
         metrics = CDT.train_pci_models()
         interpolated_results, model_prediction_times = CDT.predict(all_coords)
         for metric in metrics:
@@ -776,7 +880,7 @@ def perform_interpolation(interpolation_technique, results, all_coords):
             metric['Model_Prediction_Time'] = prediction_time
     elif interpolation_technique == 'DT':
         print('DT')
-        DT = InterpolationUsingDT(results)
+        DT = InterpolationUsingDT(results, data_source)
         metrics = DT.train_model()
         interpolated_results, prediction_time = DT.predict(all_coords)
         metrics['Prediction Time'] = prediction_time
@@ -821,7 +925,7 @@ def calculate_summary_metrics(metrics):
     return summary_metrics
 
 
-def process_results(results):
+def process_results(results, data_source):
     """
     Process the results fetched from the database.
 
@@ -832,21 +936,36 @@ def process_results(results):
     list: A list of dictionaries where each dictionary represents processed data.
     """
     processed_data = []
-
-    for obj in results:
-        data_item = {
-            'latitude': obj.latitude,
-            'longitude': obj.longitude,
-            'cellId': obj.cellId,
-            'cellId_TAC': obj.cellId_TAC,
-            'cellId_PCI': obj.cellId_PCI,
-            'signalStrength': obj.signalStrength,
-            'gpsUpdateTime': obj.gpsUpdateTime,
-            'channelBands': obj.channelBands,
-            'networkType': obj.networkType,
-            'operator_name': obj.operatorName
-        }
-        processed_data.append(data_item)
+    if data_source == 'csv':
+        for obj in results:
+            data_item = {
+                'latitude': obj['latitude'],
+                'longitude': obj['longitude'],
+                'cellId': obj['cellId'],
+                'cellId_TAC': obj['cellId_TAC'],
+                'cellId_PCI': obj['cellId_PCI'],
+                'signalStrength': obj['signalStrength'],
+                'gpsUpdateTime': obj['gpsUpdateTime'],
+                'channelBands': obj['channelBands'],
+                'networkType': obj['networkType'],
+                'operator_name': obj['operatorName']
+            }
+            processed_data.append(data_item)
+    if data_source == 'database':
+        for obj in results:
+            data_item = {
+                'latitude': obj.latitude,
+                'longitude': obj.longitude,
+                'cellId': obj.cellId,
+                'cellId_TAC': obj.cellId_TAC,
+                'cellId_PCI': obj.cellId_PCI,
+                'signalStrength': obj.signalStrength,
+                'gpsUpdateTime': obj.gpsUpdateTime,
+                'channelBands': obj.channelBands,
+                'networkType': obj.networkType,
+                'operator_name': obj.operatorName
+            }
+            processed_data.append(data_item)
 
     return processed_data
 
@@ -889,10 +1008,12 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
     centroid = shapely_polygon.centroid
     bounds = shapely_polygon.bounds
     folium_map = folium.Map(location=[centroid.y, centroid.x])
-
+    signalStrengths = [int(item['signalStrength']) for item in combined_data]
+    max_signal = max(signalStrengths)
+    min_signal = min(signalStrengths)
     # Define color scale
-    max_signal = max(item['signalStrength'] for item in combined_data)
-    min_signal = min(item['signalStrength'] for item in combined_data)
+    # max_signal = max(int(item['signalStrength']) for item in combined_data)
+    # min_signal = min(int(item['signalStrength']) for item in combined_data)
     # vmin = min_signal if min_signal > -140 else -140
     # vmax = max_signal if max_signal < -60 else -60
     vmax = -80
@@ -908,10 +1029,10 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
         is_original = ref in result_data
 
         # Add markers
-        point_color = color_scale(ref['signalStrength'])
+        point_color = color_scale(int(ref['signalStrength']))
         if is_original:
             folium.CircleMarker(
-                location=[ref['latitude'], ref['longitude']],
+                location=[float(ref['latitude']), float(ref['longitude'])],
                 radius=3,
                 color=point_color,
                 fill=True,
@@ -919,8 +1040,8 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
             ).add_to(folium_map)
         else:
             folium.Rectangle(
-                bounds=[[ref['latitude'] - marker_offset, ref['longitude'] - marker_offset],
-                        [ref['latitude'] + marker_offset, ref['longitude'] + marker_offset]],
+                bounds=[[float(ref['latitude']) - marker_offset, float(ref['longitude']) - marker_offset],
+                        [float(ref['latitude']) + marker_offset, float(ref['longitude']) + marker_offset]],
                 color=point_color,
                 fill=True,
                 fill_color=point_color
@@ -943,12 +1064,24 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
         for i in range(len(line) - 1):
             start_point = line[i]
             end_point = line[i + 1]
-            start_color = color_scale(start_point['signalStrength'])
-            end_color = color_scale(end_point['signalStrength'])
+            start_signal_strength = int(start_point['signalStrength'])
+            end_signal_strength = int(end_point['signalStrength'])
+
+            start_color = color_scale(start_signal_strength)
+            end_color = color_scale(end_signal_strength)
+            # start_color = color_scale(start_point['signalStrength'])
+            # end_color = color_scale(end_point['signalStrength'])
+            start_latitude = float(start_point['latitude'])
+            start_longitude = float(start_point['longitude'])
+            end_latitude = float(end_point['latitude'])
+            end_longitude = float(end_point['longitude'])
+
             gradient = {0: start_color, 1: end_color}
             folium.PolyLine(
-                locations=[[start_point['latitude'], start_point['longitude']],
-                           [end_point['latitude'], end_point['longitude']]],
+                locations=[
+                    [start_latitude, start_longitude],
+                    [end_latitude, end_longitude]
+                ],
                 color=start_color,
                 gradient=gradient,
                 opacity=0.4,
@@ -956,11 +1089,11 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
             ).add_to(folium_map)
     legend_html = f"""
         <div style="position: fixed; 
-                    top: 50px; left: 50px; width: 200px; height: 120px; 
-                    border:2px solid grey; z-index:9999; font-size:14px;
+                    top: 50px; left: 50px; width: 150px; height: 150px; 
+                    border:2px solid grey; z-index:9999; font-size:18px;
                     background-color: white;
                     opacity: 0.8;">
-            <p style="text-align:center;"><b>Signal Strength (dBm)</b></p>
+            <p style="text-align:center;"><b>Signal Strength</b></p>
             <p style="margin-left:10px;">{vmin} dBm <span style="margin-left:10px;background-color:red;width:10px;height:10px;display:inline-block;"></span></p>
             <p style="margin-left:10px;">{(vmin + vmax) / 2} dBm <span style="margin-left:10px;background-color:yellow;width:10px;height:10px;display:inline-block;"></span></p>
             <p style="margin-left:10px;">{vmax} dBm <span style="margin-left:10px;background-color:green;width:10px;height:10px;display:inline-block;"></span></p>
@@ -975,14 +1108,16 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
 
 def register(request):
     if request.method == 'POST':
-        print('I was here')
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save(commit=False)  # Save the user form data to the user object
+            user.first_name = form.cleaned_data['first_name']
+            user.last_name = form.cleaned_data['last_name']
+            user.email = form.cleaned_data['email']
+            user.save()  # Now, save the user object with the additional details to the database
             return redirect('login')
     else:
-        print('I am trying to register')
-        form = UserCreationForm()
+        form = CustomUserCreationForm()
     return render(request, 'register.html', {'form': form})
 
 
@@ -1044,6 +1179,7 @@ def process_csv_data(csv_data, polygon, operator_name, data_selection):
         pyproj.Proj(init='epsg:4326'),  # source coordinate system
         pyproj.Proj(init='epsg:32630')  # destination coordinate system
     )
+
 
     if data_selection == 'CD':
         for row in csv_data:

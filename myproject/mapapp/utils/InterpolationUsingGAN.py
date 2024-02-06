@@ -95,12 +95,21 @@ import time
 
 
 class InterpolationUsingGAN:
-    def __init__(self, results, min_samples_per_pci=6):
-        self.df = pd.DataFrame([{
-            'latitude': r.latitude,
-            'longitude': r.longitude,
-            'signalStrength': r.signalStrength
-        } for r in results])
+    def __init__(self, results, data_source, min_samples_per_pci=6):
+        if data_source != 'csv':
+            self.df = pd.DataFrame([{
+                'latitude': r.latitude,
+                'longitude': r.longitude,
+                'PCI': r.cellId_PCI,
+                'signalStrength': r.signalStrength
+            } for r in results])
+        else:
+            self.df = pd.DataFrame([{
+                'latitude': float(r['latitude']),
+                'longitude': float(r['longitude']),
+                'PCI': int(r['cellId_PCI']),
+                'signalStrength': int(r['signalStrength'])
+            } for r in results])
         self.generator = None
 
     def _build_generator(self):

@@ -9,14 +9,21 @@ from math import sqrt
 from sklearn.model_selection import cross_val_score
 
 class InterpolationUsingRFV2:
-    def __init__(self, results, min_samples_per_pci=6):
-        # Convert results to a DataFrame
-        self.df = pd.DataFrame([{
-            'latitude': r.latitude,
-            'longitude': r.longitude,
-            'PCI': r.cellId_PCI,
-            'signalStrength': r.signalStrength
-        } for r in results])
+    def __init__(self, results, data_source, min_samples_per_pci=6):
+        if data_source != 'csv':
+            self.df = pd.DataFrame([{
+                'latitude': r.latitude,
+                'longitude': r.longitude,
+                'PCI': r.cellId_PCI,
+                'signalStrength': r.signalStrength
+            } for r in results])
+        else:
+            self.df = pd.DataFrame([{
+                'latitude': float(r['latitude']),
+                'longitude': float(r['longitude']),
+                'PCI': int(r['cellId_PCI']),
+                'signalStrength': int(r['signalStrength'])
+            } for r in results])
         self.model = None
         self.zero_points = self._calculate_zero_points()
 

@@ -33,7 +33,6 @@ class SignalStrengthInterpolatorIDW:
     def interpolate_single_point(self, target_coord):
         distances = self.calculate_distances(self.df['latitude'].values, self.df['longitude'].values, target_coord)
 
-        # Handle zero distances
         distances = [1 if d == 0 else d for d in distances]
 
         weights = [1 / (d ** self.power) for d in distances]

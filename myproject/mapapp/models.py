@@ -2,7 +2,11 @@ from django.contrib.gis.db import models
 from django.contrib.gis.geos import Point
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
+from django.conf import settings
 
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class NetworkData(models.Model):
     accuracy = models.FloatField()
@@ -71,4 +75,21 @@ class InterpolatedNetwork(models.Model):
         return f"Query by {self.user.username} on {self.creation_date}"
 
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # It's more clear to use True/False for BooleanField defaults
+    access_right = models.BooleanField(default=False, null=False)
+
+    def __str__(self):
+        return self.user.username
+
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+    else:
+        # This line ensures the user profile is saved every time the user is saved.
+        # However, be cautious with this else block, as it might lead to unnecessary database hits.
+        # You might only need to create the profile upon user creation, and then manage profile updates separately.
+        instance.userprofile.save()
 

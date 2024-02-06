@@ -10,6 +10,11 @@
     <style>
         #map { height: 90vh}
         .form-control { /* Your form control styles */ }
+        /*a.leaflet-draw-draw-polyline, a.leaflet-draw-draw-rectangle, a.leaflet-draw-draw-circle, a.leaflet-draw-draw-marker, a.leaflet-draw-draw-circlemarker*/
+        /*{*/
+        /*    display: none;*/
+        /*}*/
+
     </style>
 {% endblock %}
 
@@ -17,6 +22,13 @@
    <section id="content">
         <div class="container-fluid mt-3" >
             <div class="row justify-content-end">
+                {% if messages %}
+                <ul class="messages">
+                    {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}><span style="color: red">{{ message }}</span></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
                 <div class="col-10 border-box" style="
     border: black;
     border-style: double;
@@ -36,7 +48,7 @@
                     </ul>
                     <div class="tab-content" id="myTabContent">
                         <div class=" tab-pane fade show active border-box" id="home" role="tabpanel" aria-labelledby="home-tab">
-                            <form method="post" action="{% url 'display_heatmap' %}" id="interpolationResult">
+                            <form method="post" action="{% url 'display_heatmap' %}" id="interpolationResult" enctype="multipart/form-data">
                             {% csrf_token %}
                                 <div class="mb-3">
                                   <label for="operatorName" class="form-label"><h5>Operator Name</h5></label>
@@ -58,6 +70,8 @@
 
     <input type="radio" id="O2UK" name="operatorName" value="O2 - UK">
     <label for="O2UK">O2 UK</label><br>
+    <input type="radio" id="personal" name="operatorName" value="personal" checked>
+    <label for="personal">Personal Data</label><br>
 </div>
                                 </div>
                                 <div class="mb-3">
@@ -67,17 +81,19 @@
 <!--                                        <option value="BD">Boundary Data</option>-->
 <!--                                        &lt;!&ndash; other options &ndash;&gt;-->
 <!--                                  </select>-->
-                                    <label for="dataSelection" class="form-label"> <h5>Data Selection</h5> </label>
-<div class="mb-3">
-    <input type="radio" id="CD" name="dataSelection" value="CD">
-    <label for="CD">Complete Data</label><br>
+<!--                                    <label for="dataSelection" class="form-label"> <h5>Data Selection</h5> </label>-->
+<!--<div class="mb-3">-->
+<!--    <input type="radio" id="CD" name="dataSelection" value="CD" checked hidden="hidden">-->
+<!--    <label for="CD">Complete Data</label><br>-->
 
-    <input type="radio" id="BD" name="dataSelection" value="BD">
-    <label for="BD">Boundary Data</label><br>
+<!--    <input type="radio" id="BD" name="dataSelection" value="BD">-->
+<!--    <label for="BD">Boundary Data</label><br>-->
 
-    <!-- Insert other options if there are any -->
-</div>
+<!--    &lt;!&ndash; Insert other options if there are any &ndash;&gt;-->
+<!--</div>-->
+                                    <input type="hidden" id="CD" name="dataSelection" value="CD">
                                 </div>
+                                {% if has_access %}
                                 <div class="mb-3">
                                     <label for="" class="form-label"><h5> Data Source </h5></label>
                                     <div>
@@ -90,6 +106,21 @@
                                         <input type="file" name="data_file" accept=".csv">
                                     </div>
                                 </div>
+                                {% else %}
+                                <div class="mb-3">
+                                    <label for="" class="form-label"><h5> Data Source </h5></label>
+                                    <div>
+                                        <input type="radio" name="data_source" value="database" disabled>
+                                        <label>Use existing database data</label>
+                                    </div>
+                                    <div>
+                                        <input type="radio" name="data_source" value="csv" checked>
+                                        <label>Upload CSV</label>
+                                        <input type="file" name="data_file" accept=".csv">
+                                    </div>
+                                </div>
+
+                                {% endif %}
                                  <div class="mb-3">
 <!--                                  <label for="InterpolationTechnique" class="form-label">Interpolation Model</label>-->
 <!--                                  <select id="InterpolationTechnique" class="form-select form-select-lg mb-3" name="InterpolationTechnique">-->
@@ -110,19 +141,18 @@
 <!--                                  </select>-->
 <label for="InterpolationTechnique" class="form-label"><h5>Interpolation Model</h5></label>
 <div class="mb-3">
-    <input type="radio" id="OD" name="InterpolationTechnique" value="OD">
+    <input type="radio" id="OD" name="InterpolationTechnique" value="OD" checked>
     <label for="OD">Original Data</label><br>
 
     <input type="radio" id="RF" name="InterpolationTechnique" value="RF">
     <label for="RF">Random Forest</label><br>
 
-    <input type="radio" id="RF_2" name="InterpolationTechnique" value="RF_2">
-    <label for="RF_2">Random Forest (V2)</label><br>
+<!--    <input type="radio" id="RF_2" name="InterpolationTechnique" value="RF_2">-->
+<!--    <label for="RF_2">Random Forest (V2)</label><br>-->
 
     <!-- Options CNN and RNN are commented out in your dropdown, so they are not included here -->
 
-    <input type="radio" id="GAN" name="InterpolationTechnique" value="GAN">
-    <label for="GAN">GAN</label><br>
+
 
     <input type="radio" id="RF_PCI" name="InterpolationTechnique" value="RF_PCI">
     <label for="RF_PCI">Random Forest(PCI Based)</label><br>
@@ -145,6 +175,9 @@
     <input type="radio" id="OK_PCI" name="InterpolationTechnique" value="OK_PCI">
     <label for="OK_PCI">Ordinary Kriging(PCI Based)</label><br>
 
+    <input type="radio" id="GAN" name="InterpolationTechnique" value="GAN">
+    <label for="GAN">GAN</label><br>
+
     <!-- Insert other options if there are any -->
 </div>
                                 </div>
@@ -155,7 +188,9 @@
                         </form>
 
                         </div>
+
                         <div class="tab-pane fade border-box" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                            {% if has_access %}
                             <form method="post" action="{% url 'download_csv' %}">
                             {% csrf_token %}
                                 <div class="mb-3">
@@ -182,6 +217,10 @@
                         </form>
 
                         </div>
+                         {% else %}
+
+                        <div>You do not have access to this content.</div>
+                    {% endif %}
 
                     </div>
                 </div>
@@ -192,6 +231,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if has_access %}
     <script>
         var map = L.map('map').setView([53.4289, -0.9381], 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -212,5 +252,28 @@
             document.getElementById('coordinates2').value = JSON.stringify(layer.getLatLngs());
         });
 </script>
+{% else %}
+
+                      <script>
+        var map = L.map('map').setView([53.4289, -0.9381], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18
+        }).addTo(map);
+
+        var drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+        var drawControl = new L.Control.Draw({
+            edit: { featureGroup: drawnItems }
+        });
+        map.addControl(drawControl);
+
+        map.on(L.Draw.Event.CREATED, function (event) {
+            var layer = event.layer;
+            drawnItems.addLayer(layer);
+            document.getElementById('coordinates').value = JSON.stringify(layer.getLatLngs());
+
+        });
+</script>
+{% endif %}
 {% endblock %}
 

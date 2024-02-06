@@ -12,5 +12,6 @@ urlpatterns = [
     path('interpolated-network/', user_specific_interpolated_network, name='interpolated_network'),
     path('delete-record/<int:record_id>/', delete_interpolated_network, name='delete_record'),
     path('download-csv/', download_csv_view, name='download_csv'),
+    path('user_update/', views.update_user, name='update_user'),
 
 ]

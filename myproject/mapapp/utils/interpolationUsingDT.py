@@ -12,13 +12,21 @@ warnings.filterwarnings(action='ignore', category=UserWarning)
 
 
 class InterpolationUsingDT:
-    def __init__(self, results):
-        self.df = pd.DataFrame([{
-            'latitude': r.latitude,
-            'longitude': r.longitude,
-            'PCI': r.cellId_PCI,
-            'signalStrength': r.signalStrength
-        } for r in results])
+    def __init__(self, results, data_source):
+        if data_source != 'csv':
+            self.df = pd.DataFrame([{
+                'latitude': r.latitude,
+                'longitude': r.longitude,
+                'PCI': r.cellId_PCI,
+                'signalStrength': r.signalStrength
+            } for r in results])
+        else:
+            self.df = pd.DataFrame([{
+                'latitude': float(r['latitude']),
+                'longitude': float(r['longitude']),
+                'PCI': int(r['cellId_PCI']),
+                'signalStrength': int(r['signalStrength'])
+            } for r in results])
 
     def train_model(self):
         if len(self.df) < 5:

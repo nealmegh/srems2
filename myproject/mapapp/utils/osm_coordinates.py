@@ -89,7 +89,7 @@ import numpy as np
 import time
 
 class OSMCoordinates:
-    def __init__(self, polygon, results):
+    def __init__(self, polygon, results, data_source):
         """
         Initializes the OSMCoordinates with a polygon and query results.
 
@@ -98,7 +98,10 @@ class OSMCoordinates:
         """
         self.polygon = polygon
         self.results = results
-        self.existing_data_coords = {(obj.longitude, obj.latitude) for obj in results}
+        if data_source != 'csv':
+            self.existing_data_coords = {(obj.longitude, obj.latitude) for obj in results}
+        else:
+            self.existing_data_coords = {(obj['longitude'], obj['latitude']) for obj in results}
 
     def get_road_coordinates_without_data(self):
 
@@ -164,7 +167,7 @@ class OSMCoordinates:
 
     # def get_road_coordinates_without_data(self):
     #     start_time = time.time()
-    #     graph = ox.graph_from_polygon(self.polygon, network_type='all')
+    #     graph = ox.graph_from_polygon(self.polygon, network_type='drive')
     #     edges = ox.graph_to_gdfs(graph, nodes=False, edges=True)
     #
     #     roads_without_data = {}
@@ -188,7 +191,7 @@ class OSMCoordinates:
     #     print(time_total)
     #     return roads_without_data
     #
-    # def _road_has_existing_data(self, geometry, radius=20):
+    # def _road_has_existing_data(self, geometry, radius=5):
     #     coords = self._get_coordinates_from_geometry(geometry)
     #     for coord in coords:
     #         if any(self._haversine(coord[1], coord[0], existing_coord[1], existing_coord[0]) <= radius
@@ -244,3 +247,6 @@ class OSMCoordinates:
         distance = OSMCoordinates._haversine(start_lat, start_lon, end_lat, end_lon)
         num_points = int(distance // interval)
         return [(start_lat + (end_lat - start_lat) * i / num_points, start_lon + (end_lon - start_lon) * i / num_points) for i in range(1, num_points)]
+# 103 is overlapping
+
+#165-197 not overlapping
