@@ -66,11 +66,18 @@ def define_boundary_view(request):
     if request.user.is_authenticated:
         # Assuming you have a one-to-one relationship to a UserProfile model
         has_access = getattr(request.user.userprofile, 'access_right', False)
+        user_id = request.user.id
+        username = request.user.username
     else:
         has_access = False
+        user_id = None
+        username = None
 
     context = {
         'has_access': has_access,
+        'user_id': user_id,
+        'username': username,
+
     }
     return render(request, 'mapapp/define_boundary.html', context)
 

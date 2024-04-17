@@ -59,7 +59,7 @@
 <!--                                    <option value="O2 - UK">O2 UK</option>-->
 <!--                                    </select>-->
                                     <div class="mb-3">
-    <input type="radio" id="Three" name="operatorName" value="3">
+    <input type="radio" id="Three" name="operatorName" value="3" checked>
     <label for="Three">Three</label><br>
 
     <input type="radio" id="EE" name="operatorName" value="EE">
@@ -70,7 +70,7 @@
 
     <input type="radio" id="O2UK" name="operatorName" value="O2 - UK">
     <label for="O2UK">O2 UK</label><br>
-    <input type="radio" id="personal" name="operatorName" value="personal" checked>
+    <input type="radio" id="personal" name="operatorName" value="personal" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="personal">Personal Data</label><br>
 </div>
                                 </div>
@@ -93,7 +93,7 @@
 <!--</div>-->
                                     <input type="hidden" id="CD" name="dataSelection" value="CD">
                                 </div>
-                                {% if has_access %}
+                                {% if has_access or username == 'ncc' %}
                                 <div class="mb-3">
                                     <label for="" class="form-label"><h5> Data Source </h5></label>
                                     <div>
@@ -101,9 +101,9 @@
                                         <label>Use existing database data</label>
                                     </div>
                                     <div>
-                                        <input type="radio" name="data_source" value="csv">
+                                        <input type="radio" name="data_source" value="csv" {% if username == 'ncc' %}disabled{% endif %}>
                                         <label>Upload CSV</label>
-                                        <input type="file" name="data_file" accept=".csv">
+                                        <input type="file" name="data_file" accept=".csv" {% if username == 'ncc' %}disabled{% endif %}>
                                     </div>
                                 </div>
                                 {% else %}
@@ -114,9 +114,9 @@
                                         <label>Use existing database data</label>
                                     </div>
                                     <div>
-                                        <input type="radio" name="data_source" value="csv" checked>
+                                        <input type="radio" name="data_source" value="csv" disabled>
                                         <label>Upload CSV</label>
-                                        <input type="file" name="data_file" accept=".csv">
+                                        <input type="file" name="data_file" accept=".csv" disabled>
                                     </div>
                                 </div>
 
@@ -144,7 +144,7 @@
     <input type="radio" id="OD" name="InterpolationTechnique" value="OD" checked>
     <label for="OD">Original Data</label><br>
 
-    <input type="radio" id="RF" name="InterpolationTechnique" value="RF">
+    <input type="radio" id="RF" name="InterpolationTechnique" value="RF" disabled>
     <label for="RF">Random Forest</label><br>
 
 <!--    <input type="radio" id="RF_2" name="InterpolationTechnique" value="RF_2">-->
@@ -154,28 +154,28 @@
 
 
 
-    <input type="radio" id="RF_PCI" name="InterpolationTechnique" value="RF_PCI">
+    <input type="radio" id="RF_PCI" name="InterpolationTechnique" value="RF_PCI" disabled>
     <label for="RF_PCI">Random Forest(PCI Based)</label><br>
 
-    <input type="radio" id="DT" name="InterpolationTechnique" value="DT">
+    <input type="radio" id="DT" name="InterpolationTechnique" value="DT" disabled>
     <label for="DT">Decision Tree</label><br>
 
-    <input type="radio" id="DT_PCI" name="InterpolationTechnique" value="DT_PCI">
+    <input type="radio" id="DT_PCI" name="InterpolationTechnique" value="DT_PCI" disabled>
     <label for="DT_PCI">Decision Tree(PCI Based)</label><br>
 
-    <input type="radio" id="IDW" name="InterpolationTechnique" value="IDW">
+    <input type="radio" id="IDW" name="InterpolationTechnique" value="IDW" disabled>
     <label for="IDW">IDW</label><br>
 
-    <input type="radio" id="IDW_PCI" name="InterpolationTechnique" value="IDW_PCI">
+    <input type="radio" id="IDW_PCI" name="InterpolationTechnique" value="IDW_PCI" disabled>
     <label for="IDW_PCI">IDW(PCI Based)</label><br>
 
-    <input type="radio" id="OK" name="InterpolationTechnique" value="OK">
+    <input type="radio" id="OK" name="InterpolationTechnique" value="OK" disabled>
     <label for="OK">Ordinary Kriging</label><br>
 
-    <input type="radio" id="OK_PCI" name="InterpolationTechnique" value="OK_PCI">
+    <input type="radio" id="OK_PCI" name="InterpolationTechnique" value="OK_PCI" disabled>
     <label for="OK_PCI">Ordinary Kriging(PCI Based)</label><br>
 
-    <input type="radio" id="GAN" name="InterpolationTechnique" value="GAN">
+    <input type="radio" id="GAN" name="InterpolationTechnique" value="GAN" disabled>
     <label for="GAN">GAN</label><br>
 
     <!-- Insert other options if there are any -->
@@ -186,11 +186,11 @@
                             <button type="submit" class="btn btn-success">Show Results</button>
 <!--                                <a type="button" class="btn btn-success" onclick="document.getElementById('interpolationResult').submit()">View Result</a>-->
                         </form>
-                            <h5><a target="_blank" href="https://drive.google.com/file/d/1ZrvLEDfmO-fQlinvun8l3KsPIe1pIzj2/view?usp=sharing">Download Sample Data</a></h5>
+<!--                            <h5><a target="_blank" href="https://drive.google.com/file/d/1ZrvLEDfmO-fQlinvun8l3KsPIe1pIzj2/view?usp=sharing">Download Sample Data</a></h5>-->
                         </div>
 
                         <div class="tab-pane fade border-box" id="profile" role="tabpanel" aria-labelledby="profile-tab">
-                            {% if has_access %}
+                            {% if has_access or username == 'ncc' %}
                             <form method="post" action="{% url 'download_csv' %}">
                             {% csrf_token %}
                                 <div class="mb-3">
@@ -206,7 +206,7 @@
                                   <label for="dataSelection2" class="form-label">Data Selection</label>
                                   <select id="dataSelection2" class="form-select form-select-lg mb-3" name="dataSelection">
                                         <option value="CD">Complete Data</option>
-                                        <option value="BD">Boundary Data</option>
+<!--                                        <option value="BD">Boundary Data</option>-->
                                         <!-- other options -->
                                   </select>
                                 </div>

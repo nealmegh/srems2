@@ -89,8 +89,8 @@ import numpy as np
 import time
 from django.conf import settings
 
-ox.settings.cache_folder = settings.CACHES['default']['LOCATION']
-ox.settings.cahe_only_mode=False
+# ox.settings.cache_folder = settings.CACHES['default']['LOCATION']
+# ox.settings.cahe_only_mode=False
 
 class OSMCoordinates:
     def __init__(self, polygon, results, data_source):
