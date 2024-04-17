@@ -144,7 +144,7 @@
     <input type="radio" id="OD" name="InterpolationTechnique" value="OD" checked>
     <label for="OD">Original Data</label><br>
 
-    <input type="radio" id="RF" name="InterpolationTechnique" value="RF" disabled>
+    <input type="radio" id="RF" name="InterpolationTechnique" value="RF" {% if username != 'abrar' %}disabled{% endif %}>
     <label for="RF">Random Forest</label><br>
 
 <!--    <input type="radio" id="RF_2" name="InterpolationTechnique" value="RF_2">-->
@@ -154,28 +154,28 @@
 
 
 
-    <input type="radio" id="RF_PCI" name="InterpolationTechnique" value="RF_PCI" disabled>
+    <input type="radio" id="RF_PCI" name="InterpolationTechnique" value="RF_PCI" {% if username != 'abrar' %}disabled{% endif %}>
     <label for="RF_PCI">Random Forest(PCI Based)</label><br>
 
-    <input type="radio" id="DT" name="InterpolationTechnique" value="DT" disabled>
+    <input type="radio" id="DT" name="InterpolationTechnique" value="DT" {% if username != 'abrar' %}disabled{% endif %}>
     <label for="DT">Decision Tree</label><br>
 
-    <input type="radio" id="DT_PCI" name="InterpolationTechnique" value="DT_PCI" disabled>
+    <input type="radio" id="DT_PCI" name="InterpolationTechnique" value="DT_PCI" {% if username != 'abrar' %}disabled{% endif %}>
     <label for="DT_PCI">Decision Tree(PCI Based)</label><br>
 
-    <input type="radio" id="IDW" name="InterpolationTechnique" value="IDW" disabled>
+    <input type="radio" id="IDW" name="InterpolationTechnique" value="IDW" {% if username != 'abrar' %}disabled{% endif %}>
     <label for="IDW">IDW</label><br>
 
-    <input type="radio" id="IDW_PCI" name="InterpolationTechnique" value="IDW_PCI" disabled>
+    <input type="radio" id="IDW_PCI" name="InterpolationTechnique" value="IDW_PCI" {% if username != 'abrar' %}disabled{% endif %}>
     <label for="IDW_PCI">IDW(PCI Based)</label><br>
 
-    <input type="radio" id="OK" name="InterpolationTechnique" value="OK" disabled>
+    <input type="radio" id="OK" name="InterpolationTechnique" value="OK" {% if username != 'abrar' %}disabled{% endif %}>
     <label for="OK">Ordinary Kriging</label><br>
 
-    <input type="radio" id="OK_PCI" name="InterpolationTechnique" value="OK_PCI" disabled>
+    <input type="radio" id="OK_PCI" name="InterpolationTechnique" value="OK_PCI" {% if username != 'abrar' %}disabled{% endif %}>
     <label for="OK_PCI">Ordinary Kriging(PCI Based)</label><br>
 
-    <input type="radio" id="GAN" name="InterpolationTechnique" value="GAN" disabled>
+    <input type="radio" id="GAN" name="InterpolationTechnique" value="GAN" {% if username != 'abrar' %}disabled{% endif %}>
     <label for="GAN">GAN</label><br>
 
     <!-- Insert other options if there are any -->

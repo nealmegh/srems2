@@ -274,7 +274,7 @@ def display_interpolated_network(request, network_id):
 
 
 def display_heatmap_view(request):
-    os.makedirs(settings.CACHE_DIR, exist_ok=True)
+    # os.makedirs(settings.CACHE_DIR, exist_ok=True)
     if request.method != 'POST':
         return redirect('define_boundary')
 
@@ -321,6 +321,9 @@ def display_heatmap_view(request):
     interpolated_results = []
     metrics = []
     if interpolation_technique != 'OD':
+        if request.user.username != 'abrar':
+            messages.warning(request, 'You do not have access to Interpolation')
+            return redirect('define_boundary')
         coords_map, all_coords = get_osm_coordinates(shapely_polygon, results, interpolation_technique, coordinates_tuples,
                                                  result_data, data_source)
         interpolated_results, metrics = perform_interpolation(interpolation_technique, results, all_coords, data_source)
