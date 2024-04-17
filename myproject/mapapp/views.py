@@ -56,6 +56,8 @@ from branca.element import Template, MacroElement
 from django.contrib.auth.forms import UserCreationForm
 import csv
 from django.contrib import messages
+import os
+from django.conf import settings
 
 
 # from geopy.distance import geodesic
@@ -265,6 +267,7 @@ def display_interpolated_network(request, network_id):
 
 
 def display_heatmap_view(request):
+    os.makedirs(settings.CACHE_DIR, exist_ok=True)
     if request.method != 'POST':
         return redirect('define_boundary')
 
@@ -273,6 +276,9 @@ def display_heatmap_view(request):
         # Attempt to extract data from POST request
         operator_name = request.POST['operatorName']
         coordinates_string = request.POST['coordinates']
+        if not coordinates_string:
+            messages.error(request,'Missing required data. Please Make sure to draw polygon and select the proper options')
+            return redirect('define_boundary')
         dataSelection = request.POST['dataSelection']
         interpolation_technique = request.POST['InterpolationTechnique']
         print(operator_name, coordinates_string, interpolation_technique)
@@ -286,7 +292,7 @@ def display_heatmap_view(request):
     # results = fetch_network_data(polygon, operator_name, dataSelection)
     data_source = request.POST.get('data_source', 'database')
 
-    if not request.FILES.get('data_file'):
+    if not request.FILES.get('data_file') and data_source == 'csv':
         messages.warning(request, 'No Files uploaded')
         return redirect('define_boundary')
     if data_source == 'csv' and request.FILES.get('data_file'):
