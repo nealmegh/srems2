@@ -47,7 +47,9 @@
                       </li>
                     </ul>
                     <div class="tab-content" id="myTabContent">
+
                         <div class=" tab-pane fade show active border-box" id="home" role="tabpanel" aria-labelledby="home-tab">
+                            {% if authenticated %}
                             <form method="post" action="{% url 'display_heatmap' %}" id="interpolationResult" enctype="multipart/form-data">
                             {% csrf_token %}
                                 <div class="mb-3">
@@ -59,16 +61,16 @@
 <!--                                    <option value="O2 - UK">O2 UK</option>-->
 <!--                                    </select>-->
                                     <div class="mb-3">
-    <input type="radio" id="Three" name="operatorName" value="3" checked>
+    <input type="radio" id="Three" name="operatorName" value="3" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
     <label for="Three">Three</label><br>
 
-    <input type="radio" id="EE" name="operatorName" value="EE">
+    <input type="radio" id="EE" name="operatorName" value="EE" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
     <label for="EE">EE</label><br>
 
-    <input type="radio" id="VodafoneUK" name="operatorName" value="vodafone UK">
+    <input type="radio" id="VodafoneUK" name="operatorName" value="vodafone UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
     <label for="VodafoneUK">Vodafone UK</label><br>
 
-    <input type="radio" id="O2UK" name="operatorName" value="O2 - UK">
+    <input type="radio" id="O2UK" name="operatorName" value="O2 - UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
     <label for="O2UK">O2 UK</label><br>
     <input type="radio" id="personal" name="operatorName" value="personal" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="personal">Personal Data</label><br>
@@ -114,9 +116,9 @@
                                         <label>Use existing database data</label>
                                     </div>
                                     <div>
-                                        <input type="radio" name="data_source" value="csv" disabled>
+                                        <input type="radio" name="data_source" value="csv" >
                                         <label>Upload CSV</label>
-                                        <input type="file" name="data_file" accept=".csv" disabled>
+                                        <input type="file" name="data_file" accept=".csv" >
                                     </div>
                                 </div>
 
@@ -144,7 +146,7 @@
     <input type="radio" id="OD" name="InterpolationTechnique" value="OD" checked>
     <label for="OD">Original Data</label><br>
 
-    <input type="radio" id="RF" name="InterpolationTechnique" value="RF" {% if username != 'abrar' %}disabled{% endif %}>
+    <input type="radio" id="RF" name="InterpolationTechnique" value="RF" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="RF">Random Forest</label><br>
 
 <!--    <input type="radio" id="RF_2" name="InterpolationTechnique" value="RF_2">-->
@@ -154,28 +156,28 @@
 
 
 
-    <input type="radio" id="RF_PCI" name="InterpolationTechnique" value="RF_PCI" {% if username != 'abrar' %}disabled{% endif %}>
+    <input type="radio" id="RF_PCI" name="InterpolationTechnique" value="RF_PCI" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="RF_PCI">Random Forest(PCI Based)</label><br>
 
-    <input type="radio" id="DT" name="InterpolationTechnique" value="DT" {% if username != 'abrar' %}disabled{% endif %}>
+    <input type="radio" id="DT" name="InterpolationTechnique" value="DT" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="DT">Decision Tree</label><br>
 
-    <input type="radio" id="DT_PCI" name="InterpolationTechnique" value="DT_PCI" {% if username != 'abrar' %}disabled{% endif %}>
+    <input type="radio" id="DT_PCI" name="InterpolationTechnique" value="DT_PCI" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="DT_PCI">Decision Tree(PCI Based)</label><br>
 
-    <input type="radio" id="IDW" name="InterpolationTechnique" value="IDW" {% if username != 'abrar' %}disabled{% endif %}>
+    <input type="radio" id="IDW" name="InterpolationTechnique" value="IDW" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="IDW">IDW</label><br>
 
-    <input type="radio" id="IDW_PCI" name="InterpolationTechnique" value="IDW_PCI" {% if username != 'abrar' %}disabled{% endif %}>
+    <input type="radio" id="IDW_PCI" name="InterpolationTechnique" value="IDW_PCI" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="IDW_PCI">IDW(PCI Based)</label><br>
 
-    <input type="radio" id="OK" name="InterpolationTechnique" value="OK" {% if username != 'abrar' %}disabled{% endif %}>
+    <input type="radio" id="OK" name="InterpolationTechnique" value="OK" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="OK">Ordinary Kriging</label><br>
 
-    <input type="radio" id="OK_PCI" name="InterpolationTechnique" value="OK_PCI" {% if username != 'abrar' %}disabled{% endif %}>
+    <input type="radio" id="OK_PCI" name="InterpolationTechnique" value="OK_PCI" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="OK_PCI">Ordinary Kriging(PCI Based)</label><br>
 
-    <input type="radio" id="GAN" name="InterpolationTechnique" value="GAN" {% if username != 'abrar' %}disabled{% endif %}>
+    <input type="radio" id="GAN" name="InterpolationTechnique" value="GAN" {% if username == 'ncc' %}disabled{% endif %}>
     <label for="GAN">GAN</label><br>
 
     <!-- Insert other options if there are any -->
@@ -187,6 +189,9 @@
 <!--                                <a type="button" class="btn btn-success" onclick="document.getElementById('interpolationResult').submit()">View Result</a>-->
                         </form>
 <!--                            <h5><a target="_blank" href="https://drive.google.com/file/d/1ZrvLEDfmO-fQlinvun8l3KsPIe1pIzj2/view?usp=sharing">Download Sample Data</a></h5>-->
+                            {% else %}
+                            <p> Please login to get access. </p>
+                            {% endif %}
                         </div>
 
                         <div class="tab-pane fade border-box" id="profile" role="tabpanel" aria-labelledby="profile-tab">
@@ -218,8 +223,12 @@
 
                         </div>
                          {% else %}
-
+                        {% if authenticated %}
                         <div>You do not have access to this content.</div>
+                        {% else %}
+                        <p> Please login to get access. </p>
+                        {% endif %}
+
                     {% endif %}
 
                     </div>

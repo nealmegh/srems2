@@ -68,15 +68,18 @@ def define_boundary_view(request):
         has_access = getattr(request.user.userprofile, 'access_right', False)
         user_id = request.user.id
         username = request.user.username
+        authenticated = True
     else:
         has_access = False
         user_id = None
         username = None
+        authenticated = False
 
     context = {
         'has_access': has_access,
         'user_id': user_id,
         'username': username,
+        'authenticated': authenticated
 
     }
     return render(request, 'mapapp/define_boundary.html', context)
@@ -277,6 +280,15 @@ def display_heatmap_view(request):
     # os.makedirs(settings.CACHE_DIR, exist_ok=True)
     if request.method != 'POST':
         return redirect('define_boundary')
+    if not request.POST.get('operatorName'):
+        print(request.POST.get('operatorName'))
+        messages.warning(request, 'Please Select Operator')
+        return redirect('define_boundary')
+
+    if request.POST.get('data_source') == 'database':
+        if request.user.is_authenticated and request.user.username not in ['abrar', 'ncc']:
+            messages.warning(request, 'You do not have access to the stored data')
+            return redirect('define_boundary')
 
     # operator_name, coordinates_string, dataSelection, interpolation_technique = get_post_data(request)
     try:
