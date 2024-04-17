@@ -7,6 +7,7 @@ from .models import InterpolatedNetwork, UserProfile
 from django.views.decorators.http import require_POST
 from django.http import HttpResponse
 from io import StringIO
+import pandas as pd
 from django.http import JsonResponse
 from django.contrib.auth.views import LogoutView
 from django.http import HttpResponseRedirect
@@ -31,6 +32,9 @@ from .utils.interpolationUsingRF import InterpolationUsingRF
 from .utils.interpolationByIDW import SignalStrengthInterpolatorIDW
 from .utils.InterpolationByPCIusingIDW import IDWInterpolationByPCI
 from .utils.InterpolationUsingKriging import InterpolationUsingKriging
+from .utils.InterpolationUsingUniKriging import InterpolationUsingUniKriging
+from .utils.RegressionKrigingRFK import RegressionKrigingRFK
+from .utils.InterpolationUsingRegressionKriging import RegressionKriging
 from .utils.InterpolationByPCIUsingKriging import InterpolationByPCIUsingKriging
 from .utils.interpolationUsingDT import InterpolationUsingDT
 from .utils.interpolationByPciUsingDT import InterpolationByPciUsingDT
@@ -38,6 +42,7 @@ from .utils.interpolationUsingRFV2 import InterpolationUsingRFV2
 from .utils.InterpolationUsingCNN import InterpolationUsingCNN
 from .utils.InterpolationUsingRNN import InterpolationUsingRNN
 from .utils.InterpolationUsingGAN import InterpolationUsingGAN
+from .utils.coverageAnalysis import RoadCoverageChecker2
 import branca.colormap as cm
 from shapely.geometry import Polygon as ShapelyPolygon
 from shapely.wkt import loads
@@ -56,6 +61,9 @@ from branca.element import Template, MacroElement
 from django.contrib.auth.forms import UserCreationForm
 import csv
 from django.contrib import messages
+import sys
+import time
+
 
 
 # from geopy.distance import geodesic
@@ -174,7 +182,7 @@ def process_network_data(data):
         'LTE Inter': LTEInter,
         'NSA Inter': NSAInter,
         'NSA Intra': NSAIntra,
-        'Channel Bands': [int(band.strip('[]')) for band in channelBands],
+        'Channel Bands': [int(band.strip('[]')) for band in channelBands if band.strip('[]').isdigit()],
         'SD': SD,
         'Mean': mean,
         'Median': median
@@ -267,12 +275,15 @@ def display_interpolated_network(request, network_id):
 def display_heatmap_view(request):
     if request.method != 'POST':
         return redirect('define_boundary')
-
+    print('ok start')
     # operator_name, coordinates_string, dataSelection, interpolation_technique = get_post_data(request)
     try:
         # Attempt to extract data from POST request
         operator_name = request.POST['operatorName']
         coordinates_string = request.POST['coordinates']
+        if not coordinates_string:
+            messages.error(request,'Missing required data. Please Make sure to draw polygon and select the proper options')
+            return redirect('define_boundary')
         dataSelection = request.POST['dataSelection']
         interpolation_technique = request.POST['InterpolationTechnique']
         print(operator_name, coordinates_string, interpolation_technique)
@@ -286,7 +297,7 @@ def display_heatmap_view(request):
     # results = fetch_network_data(polygon, operator_name, dataSelection)
     data_source = request.POST.get('data_source', 'database')
 
-    if not request.FILES.get('data_file'):
+    if not request.FILES.get('data_file') and data_source == 'csv':
         messages.warning(request, 'No Files uploaded')
         return redirect('define_boundary')
     if data_source == 'csv' and request.FILES.get('data_file'):
@@ -307,6 +318,8 @@ def display_heatmap_view(request):
     area = calculate_area_sq_km(coordinates_tuples)
     interpolated_results = []
     metrics = []
+    coords_map, all_coords = get_osm_coordinates(shapely_polygon, results, interpolation_technique, coordinates_tuples,
+                                                 result_data, data_source)
     if interpolation_technique != 'OD':
         coords_map, all_coords = get_osm_coordinates(shapely_polygon, results, interpolation_technique, coordinates_tuples,
                                                  result_data, data_source)
@@ -676,6 +689,12 @@ def process_coordinates(coordinates_string):
 def get_osm_coordinates(shapely_polygon, results, interpolation_technique, coordinates_tuples, result_data, data_source):
     start_time = time.time()
     coords_obj = OSMCoordinates(shapely_polygon, results, data_source)
+    # roadCoverage = RoadCoverageChecker2(coordinates_tuples, result_data)
+    NumberOfRoads = coords_obj.get_number_of_streets_with_data()
+    # NumberOfRoads = roadCoverage.check_road_coverage()
+    print('Number of Roads')
+    print(len(NumberOfRoads))
+    # sys.exit()
     coords_map = coords_obj.get_road_coordinates_without_data()
     all_coords = [coord for sublist in coords_map.values() for coord in sublist if sublist]
 
@@ -848,11 +867,51 @@ def perform_interpolation(interpolation_technique, results, all_coords, data_sou
             metric['Model_Prediction_Time'] = prediction_time
     elif interpolation_technique == 'OK':
         print('OK')
-        OK = InterpolationUsingKriging(results, data_source)
-        metrics = OK.cross_validate()
-        interpolated_results, prediction_time = OK.predict(all_coords)
-        metrics['Prediction Time'] = prediction_time
-        metrics['Total Execution time'] = metrics['Training Duration (seconds)'] + prediction_time
+        results_list = []
+
+        variogram_models = ["linear", "power", "gaussian", "spherical", "exponential"]
+
+        for model in variogram_models:
+            # Assume you have defined InterpolationUsingKriging and RegressionKriging classes
+            # OK = InterpolationUsingKriging(results, data_source, variogram_model=model)
+            # UK = InterpolationUsingUniKriging(results, data_source, variogram_model=model)  # Uncomment if needed
+            # RK = RegressionKriging(results, data_source, variogram_model=model)
+            RFK = RegressionKrigingRFK(results, data_source, variogram_model=model)
+
+            # Perform cross-validation
+            # OKmetrics = OK.cross_validate()
+            # UKmetrics = UK.cross_validate()  # Uncomment if needed
+            # RKmetrics = RK.cross_validate()
+            RFKmetrics = RFK.cross_validate()
+
+            # Append the results to the list, including model and kriging type for identification
+            # results_list.append({'Variogram Model': model, 'Kriging Type': 'OK', **OKmetrics})
+            # results_list.append({'Variogram Model': model, 'Kriging Type': 'UK', **UKmetrics})  # Uncomment if needed
+            # results_list.append({'Variogram Model': model, 'Kriging Type': 'RK', **RKmetrics})
+            results_list.append({'Variogram Model': model, 'Kriging Type': 'RFK', **RFKmetrics})
+
+            # Optionally, print the results for the current model
+            # print(f"OK Model: {model}, Metrics: {OKmetrics}")
+            # print(f"UK Model: {model}, Metrics: {UKmetrics}")  # Uncomment if needed
+            # print(f"RK Model: {model}, Metrics: {RKmetrics}")
+            print(f"RK Model: {model}, Metrics: {RFKmetrics}")
+
+        # Convert the list of results to a pandas DataFrame
+        # df_results = pd.DataFrame(results_list)
+        #
+        # # Prepare the CSV file path with a formatted timestamp
+        # current_time = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())
+        # csv_file_path = f'cross_validation_results_{current_time}.csv'
+        # df_results.to_csv(csv_file_path, index=False)
+        #
+        # print(f"Results exported to {csv_file_path}")
+
+        # OK = InterpolationUsingKriging(results, data_source)
+        # metrics = OK.cross_validate()
+        # interpolated_results, prediction_time = OK.predict(all_coords)
+        # metrics['Prediction Time'] = prediction_time
+        # metrics['Total Execution time'] = metrics['Training Duration (seconds)'] + prediction_time
+        sys.exit()
     elif interpolation_technique == 'OK_PCI':
         print('OK_PCI')
         OK_PCI = InterpolationByPCIUsingKriging(results, data_source)
@@ -948,7 +1007,8 @@ def process_results(results, data_source):
                 'gpsUpdateTime': obj['gpsUpdateTime'],
                 'channelBands': obj['channelBands'],
                 'networkType': obj['networkType'],
-                'operator_name': obj['operatorName']
+                'operator_name': obj['operatorName'],
+                'point': obj['location']
             }
             processed_data.append(data_item)
     if data_source == 'database':

@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+
 class NetworkData(models.Model):
     accuracy = models.FloatField()
     asuLevel = models.IntegerField()

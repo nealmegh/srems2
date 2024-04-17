@@ -5,3 +5,6 @@ Network_O2_-_UK.csv
 Network_vodafone_UK.csv
 myproject/settings.py
 cache/
+*.csv
+*.xlsx
+data_output.txt

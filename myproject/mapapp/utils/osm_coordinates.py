@@ -85,8 +85,17 @@
 
 import osmnx as ox
 from shapely.geometry import LineString, MultiLineString
+from shapely.wkt import loads
+import geopandas as gpd
+from shapely.geometry import Point
 import numpy as np
 import time
+from django.contrib.gis.geos import Point as DjangoPoint
+from shapely.geometry import Point as ShapelyPoint
+
+
+
+
 
 class OSMCoordinates:
     def __init__(self, polygon, results, data_source):
@@ -249,4 +258,157 @@ class OSMCoordinates:
         return [(start_lat + (end_lat - start_lat) * i / num_points, start_lon + (end_lon - start_lon) * i / num_points) for i in range(1, num_points)]
 # 103 is overlapping
 
+    # def get_number_of_streets_with_data(self):
+    #     """
+    #     Determines the number of unique streets within the polygon that have existing data.
+    #
+    #     :return: Integer count of unique streets with data.
+    #     """
+    #     # First, get all streets within the polygon, similar to get_road_coordinates_without_data method.
+    #     graph = ox.graph_from_polygon(self.polygon, network_type='drive')
+    #     edges = ox.graph_to_gdfs(graph, nodes=False, edges=True)
+    #
+    #     # Dictionary to hold all unique streets by name within the polygon
+    #     all_streets = set()
+    #
+    #     for _, edge in edges.iterrows():
+    #         street_name = edge.get('name')
+    #         if street_name:
+    #             all_streets.add(street_name)
+    #
+    #     # Now, call get_road_coordinates_without_data to get streets without data
+    #     roads_without_data = self.get_road_coordinates_without_data()
+    #
+    #     # Convert roads_without_data keys into a set of unique names for comparison
+    #     streets_without_data_names = set(roads_without_data.keys())
+    #
+    #     # Determine streets with data by subtracting streets without data from all streets
+    #     streets_with_data = all_streets - streets_without_data_names
+    #     print(all_streets)
+    #     print(streets_without_data_names)
+    #     print(streets_with_data)
+    #
+    #     # Return the count of unique streets that have data
+    #     return len(streets_with_data)
+
+    # def get_number_of_streets_with_data(self):
+    #     """
+    #     Determines the number of unique streets within the polygon that have existing data.
+    #
+    #     :return: Integer count of unique streets with data.
+    #     """
+    #     # First, get all streets within the polygon, similar to get_road_coordinates_without_data method.
+    #     graph = ox.graph_from_polygon(self.polygon, network_type='drive')
+    #     edges = ox.graph_to_gdfs(graph, nodes=False, edges=True)
+    #
+    #     # Dictionary to hold all unique streets by name within the polygon
+    #     roads_with_data = {}
+    #     print('point here')
+    #     print(self.results[1].location)
+    #     for osm_id, edge in edges.iterrows():
+    #         geometry = edge['geometry']
+    #         coords = self._get_coordinates_from_geometry(geometry)
+    #
+    #         # Check if any coordinate of the road is in existing data
+    #         if any(coord in self.existing_data_coords for coord in coords):
+    #             # Get the road name; use a default value or osm_id if name is not available
+    #             road_name = edge.get('name', f"Unnamed Road {osm_id}")
+    #
+    #             # Add the osm_id and road name to the dictionary if not already present
+    #             # This ensures each road is considered uniquely
+    #             if osm_id not in roads_with_data:
+    #                 roads_with_data[osm_id] = road_name
+    #                 print(roads_with_data[osm_id])
+    #     return len(roads_with_data)
+
+    def get_number_of_streets_with_data(self):
+        """
+        Identifies unique streets within the polygon that have existing data points.
+
+        :return: List of unique street names with data.
+        """
+        # Load the road network within the specified polygon
+        graph = ox.graph_from_polygon(self.polygon, network_type='drive')
+        edges = ox.graph_to_gdfs(graph, nodes=False, edges=True).to_crs("EPSG:4326")
+        edges.reset_index(drop=True, inplace=True)
+        # Function to convert location data to Shapely Point objects
+        def parse_location(location):
+            if isinstance(location, DjangoPoint):
+                # Convert Django GIS Point to Shapely Point
+                return ShapelyPoint(location.x, location.y)
+            elif isinstance(location, str):
+                # Parse WKT string to Shapely Point
+                return loads(location.split(';')[-1])
+            else:
+                raise ValueError("Unexpected location type or format")
+
+        # Convert location data to Point objects for geospatial analysis
+        points_geometry = [parse_location(obj.location) for obj in self.results]
+        gdf_points = gpd.GeoDataFrame(geometry=points_geometry, crs="EPSG:4326")
+        roads_with_data = {}
+        # print(edges.info())
+        print(edges.head())
+        # For each point, find the nearest road segment
+        for point in gdf_points.geometry:
+            distances = edges.geometry.distance(point)
+            nearest_road_idx = distances.idxmin()
+
+            if 0 <= nearest_road_idx < len(edges):
+                nearest_road = edges.iloc[nearest_road_idx]
+                # Check if 'osmid' is a list and convert to a tuple, otherwise use it directly
+                osmid_key = tuple(nearest_road.osmid) if isinstance(nearest_road.osmid, list) else nearest_road.osmid
+                road_name = nearest_road.get('name', f"Unnamed Road {osmid_key}")
+                roads_with_data[osmid_key] = road_name
+
+
+        # Debugging: Print the names of the roads collected
+        print(list(roads_with_data.values()))
+        return list(roads_with_data.values())
+
+    # def get_number_of_streets_with_data(self):
+    #     # Load the road network within the specified polygon
+    #     graph = ox.graph_from_polygon(self.polygon, network_type='drive')
+    #     edges = ox.graph_to_gdfs(graph, nodes=False, edges=True).to_crs("EPSG:4326")
+    #     edges.reset_index(drop=True, inplace=True)
+    #
+    #     # Function to convert location data to Shapely Point objects
+    #     def parse_location(location):
+    #         if isinstance(location, DjangoPoint):
+    #             # Convert Django GIS Point to Shapely Point
+    #             return ShapelyPoint(location.x, location.y)
+    #         elif isinstance(location, str):
+    #             # Parse WKT string to Shapely Point
+    #             return loads(location.split(';')[-1])
+    #         else:
+    #             raise ValueError("Unexpected location type or format")
+    #
+    #     # Convert location data to Point objects for geospatial analysis
+    #     points_geometry = [parse_location(obj.location) for obj in self.results]
+    #     gdf_points = gpd.GeoDataFrame(geometry=points_geometry, crs="EPSG:4326")
+    #
+    #     # Initialize the spatial index for 'edges'
+    #     sindex = edges.sindex
+    #
+    #     # Initialize a list to hold the names of roads with data
+    #     roads_with_data_names = []
+    #
+    #     # For each point, find the nearest road segment
+    #     for point in gdf_points.geometry:
+    #         # Instead of using point.bounds, pass the point geometry directly
+    #         nearest_idx = list(sindex.nearest(point))[0]  # Taking the first result from the nearest query
+    #         nearest_road = edges.iloc[nearest_idx]  # Ensure it's in a list to keep DataFrame format
+    #
+    #         # Accessing road name or any other attribute
+    #         if not nearest_road.empty:
+    #             road_name = nearest_road.iloc[0]['name']
+    #             print(f"The nearest road to the point is: {road_name}")
+    #         else:
+    #             print("No nearest road found.")
+    #
+    #     # Debugging: Print the names of the roads collected
+    #     print(roads_with_data_names)
+    #     return roads_with_data_names
+
 #165-197 not overlapping
+# if isinstance(nearest_road_idx, tuple):
+#     nearest_road_idx = nearest_road_idx[0]

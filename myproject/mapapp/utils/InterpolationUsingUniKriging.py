@@ -1,12 +1,12 @@
 import pandas as pd
 import numpy as np
-from pykrige.ok import OrdinaryKriging
+from pykrige.uk import UniversalKriging
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import time
 from math import sqrt
 
-class InterpolationUsingKriging:
+class InterpolationUsingUniKriging:
 
     def __init__(self, results, data_source, variogram_model, min_samples_per_pci=60):
         self.variogram_model = variogram_model
@@ -38,10 +38,10 @@ class InterpolationUsingKriging:
 
         start_time = time.time()
 
-        OK = OrdinaryKriging(X_train['longitude'].values, X_train['latitude'].values, y_train.values,
+        UK = UniversalKriging(X_train['longitude'].values, X_train['latitude'].values, y_train.values,
                              variogram_model=self.variogram_model)
 
-        z_pred, _ = OK.execute('points', X_test['longitude'].values, X_test['latitude'].values)
+        z_pred, _ = UK.execute('points', X_test['longitude'].values, X_test['latitude'].values)
         end_time = time.time()
 
         # Calculate performance metrics
@@ -72,11 +72,11 @@ class InterpolationUsingKriging:
     def predict(self, coordinates_list):
 
         start_prediction_time = time.time()
-        OK = OrdinaryKriging(self.df['longitude'].values, self.df['latitude'].values,
+        UK = UniversalKriging(self.df['longitude'].values, self.df['latitude'].values,
                              self.df['signalStrength'].values, variogram_model=self.variogram_model)
         latitudes, longitudes = zip(*coordinates_list)
 
-        z_pred, _ = OK.execute('points', longitudes, latitudes)
+        z_pred, _ = UK.execute('points', longitudes, latitudes)
         end_prediction_time = time.time()
         prediction_time = end_prediction_time - start_prediction_time
 
