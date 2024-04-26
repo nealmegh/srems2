@@ -107,39 +107,39 @@ class OSMCoordinates:
         else:
             self.existing_data_coords = {(obj['longitude'], obj['latitude']) for obj in results}
 
-    def get_road_coordinates_without_data(self):
-
-        start_time = time.time()
-        """
-        Retrieves coordinates of roads within the polygon that are not in the results,
-        sorted from top (north) to bottom (south).
-
-        :return: Dictionary with OSM IDs and coordinates of roads lacking data.
-        """
-        # Retrieve the graph of all streets within the specified polygon
-        graph = ox.graph_from_polygon(self.polygon, network_type='drive')
-        edges = ox.graph_to_gdfs(graph, nodes=False, edges=True)
-
-        roads_without_data = {}
-
-        for osm_id, edge in edges.iterrows():
-            geometry = edge['geometry']
-            coords = self._get_coordinates_from_geometry(geometry)
-
-            # Check if any coordinate of the road is not in existing data
-            if not any(coord in self.existing_data_coords for coord in coords):
-                # Interpolate and format the coordinates as a list of tuples (lat, lon)
-                interpolated_coords = self._interpolate_road_coordinates(coords)
-                formatted_interpolated_coords = [(coord[1], coord[0]) for coord in interpolated_coords]
-
-                # Sort coordinates from top to bottom (north to south)
-                sorted_coords = sorted(formatted_interpolated_coords, key=lambda x: x[0], reverse=True)
-
-                roads_without_data[osm_id] = sorted_coords
-        end_time = time.time()
-        time_total = end_time - start_time
-        print(time_total)
-        return roads_without_data
+    # def get_road_coordinates_without_data(self):
+    #
+    #     start_time = time.time()
+    #     """
+    #     Retrieves coordinates of roads within the polygon that are not in the results,
+    #     sorted from top (north) to bottom (south).
+    #
+    #     :return: Dictionary with OSM IDs and coordinates of roads lacking data.
+    #     """
+    #     # Retrieve the graph of all streets within the specified polygon
+    #     graph = ox.graph_from_polygon(self.polygon, network_type='drive')
+    #     edges = ox.graph_to_gdfs(graph, nodes=False, edges=True)
+    #
+    #     roads_without_data = {}
+    #
+    #     for osm_id, edge in edges.iterrows():
+    #         geometry = edge['geometry']
+    #         coords = self._get_coordinates_from_geometry(geometry)
+    #
+    #         # Check if any coordinate of the road is not in existing data
+    #         if not any(coord in self.existing_data_coords for coord in coords):
+    #             # Interpolate and format the coordinates as a list of tuples (lat, lon)
+    #             interpolated_coords = self._interpolate_road_coordinates(coords)
+    #             formatted_interpolated_coords = [(coord[1], coord[0]) for coord in interpolated_coords]
+    #
+    #             # Sort coordinates from top to bottom (north to south)
+    #             sorted_coords = sorted(formatted_interpolated_coords, key=lambda x: x[0], reverse=True)
+    #
+    #             roads_without_data[osm_id] = sorted_coords
+    #     end_time = time.time()
+    #     time_total = end_time - start_time
+    #     print(time_total)
+    #     return roads_without_data
 
     # def get_road_coordinates_without_data(self):
     #     graph = ox.graph_from_polygon(self.polygon, network_type='all')
@@ -169,39 +169,39 @@ class OSMCoordinates:
     #             return True
     #     return False
 
-    # def get_road_coordinates_without_data(self):
-    #     start_time = time.time()
-    #     graph = ox.graph_from_polygon(self.polygon, network_type='drive')
-    #     edges = ox.graph_to_gdfs(graph, nodes=False, edges=True)
-    #
-    #     roads_without_data = {}
-    #
-    #     # Filter roads first
-    #     filtered_osm_ids = [osm_id for osm_id, edge in edges.iterrows() if
-    #                         not self._road_has_existing_data(edge['geometry'])]
-    #
-    #     for osm_id in filtered_osm_ids:
-    #         edge = edges.loc[osm_id]
-    #         geometry = edge['geometry']
-    #         coords = self._get_coordinates_from_geometry(geometry)
-    #
-    #         interpolated_coords = self._interpolate_road_coordinates(coords)
-    #         formatted_interpolated_coords = [(coord[1], coord[0]) for coord in interpolated_coords]
-    #
-    #         sorted_coords = sorted(formatted_interpolated_coords, key=lambda x: x[0], reverse=True)
-    #         roads_without_data[osm_id] = sorted_coords
-    #     end_time = time.time()
-    #     time_total = end_time - start_time
-    #     print(time_total)
-    #     return roads_without_data
-    #
-    # def _road_has_existing_data(self, geometry, radius=5):
-    #     coords = self._get_coordinates_from_geometry(geometry)
-    #     for coord in coords:
-    #         if any(self._haversine(coord[1], coord[0], existing_coord[1], existing_coord[0]) <= radius
-    #                for existing_coord in self.existing_data_coords):
-    #             return True
-    #     return False
+    def get_road_coordinates_without_data(self):
+        start_time = time.time()
+        graph = ox.graph_from_polygon(self.polygon, network_type='drive')
+        edges = ox.graph_to_gdfs(graph, nodes=False, edges=True)
+
+        roads_without_data = {}
+
+        # Filter roads first
+        filtered_osm_ids = [osm_id for osm_id, edge in edges.iterrows() if
+                            not self._road_has_existing_data(edge['geometry'])]
+
+        for osm_id in filtered_osm_ids:
+            edge = edges.loc[osm_id]
+            geometry = edge['geometry']
+            coords = self._get_coordinates_from_geometry(geometry)
+
+            interpolated_coords = self._interpolate_road_coordinates(coords)
+            formatted_interpolated_coords = [(coord[1], coord[0]) for coord in interpolated_coords]
+
+            sorted_coords = sorted(formatted_interpolated_coords, key=lambda x: x[0], reverse=True)
+            roads_without_data[osm_id] = sorted_coords
+        end_time = time.time()
+        time_total = end_time - start_time
+        print(time_total)
+        return roads_without_data
+
+    def _road_has_existing_data(self, geometry, radius=5):
+        coords = self._get_coordinates_from_geometry(geometry)
+        for coord in coords:
+            if any(self._haversine(coord[1], coord[0], existing_coord[1], existing_coord[0]) <= radius
+                   for existing_coord in self.existing_data_coords):
+                return True
+        return False
 
     def _get_coordinates_from_geometry(self, geometry):
         """
@@ -251,6 +251,6 @@ class OSMCoordinates:
         distance = OSMCoordinates._haversine(start_lat, start_lon, end_lat, end_lon)
         num_points = int(distance // interval)
         return [(start_lat + (end_lat - start_lat) * i / num_points, start_lon + (end_lon - start_lon) * i / num_points) for i in range(1, num_points)]
-# 103 is overlapping
+# 110 is overlapping
 
-#165-197 not overlapping
+#172-204 not overlapping
