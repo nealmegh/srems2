@@ -38,6 +38,7 @@ from .utils.interpolationUsingRFV2 import InterpolationUsingRFV2
 from .utils.InterpolationUsingCNN import InterpolationUsingCNN
 from .utils.InterpolationUsingRNN import InterpolationUsingRNN
 from .utils.InterpolationUsingGAN import InterpolationUsingGAN
+from .utils.RegressionKrigingRFK import  RegressionKrigingRFK
 import branca.colormap as cm
 from shapely.geometry import Polygon as ShapelyPolygon
 from shapely.wkt import loads
@@ -834,6 +835,14 @@ def perform_interpolation(interpolation_technique, results, all_coords, data_sou
         interpolated_results, prediction_time = RF.predict(all_coords)
         metrics['Prediction Time'] = prediction_time
         metrics['Total Execution time'] = metrics['Training Duration (seconds)'] + prediction_time
+    elif interpolation_technique == 'RFK':
+        print('RFK')
+        # print(len(all_coords))
+        RFK = RegressionKrigingRFK(results, data_source)
+        metrics = RFK.train_model()
+        interpolated_results, prediction_time = RFK.predict(all_coords)
+        metrics['Prediction Time'] = prediction_time
+        metrics['Total Execution time'] = metrics['Training Duration (seconds)'] + prediction_time
     elif interpolation_technique == 'CNN':
         print('CNN')
         # print(len(all_coords))
@@ -1014,7 +1023,7 @@ def prepare_chart_context(interpolation_technique, metrics):
             'rmse_values': json.dumps(rmse_values),
             'r2_values': json.dumps(r2_values)
         }
-    elif interpolation_technique in ['RF', 'RF_2', 'IDW', 'OK', 'DT', 'CNN', 'GAN', 'RNN']:
+    elif interpolation_technique in ['RF', 'RF_2', 'IDW', 'OK', 'DT', 'CNN', 'GAN', 'RNN', 'RFK']:
         # Assuming metrics is a single dictionary for these techniques
         chart_context = {
             'data_points': json.dumps(metrics.get('Total Data Points', [])),

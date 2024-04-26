@@ -54,6 +54,8 @@
             <h2>GAN on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'OK_PCI' %}
             <h2>PCI based Ordinary Kriging on an area of {{ area|floatformat:2 }} square KM</h2>
+        {% elif interpolation_technique == 'RFK' %}
+            <h2>Random Forest Kriging on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'OK' %}
             <h2>Ordinary Kriging on an area of {{ area|floatformat:2 }} square KM</h2>
         {% elif interpolation_technique == 'IDW_PCI' %}
@@ -159,7 +161,7 @@
     });
 </script>
         {% endif %}
-{% if interpolation_technique == 'RF' or interpolation_technique == 'RF_2' or interpolation_technique == 'CNN' or interpolation_technique == 'RNN' or interpolation_technique == 'GAN' or interpolation_technique == 'IDW' or interpolation_technique == 'OK' or interpolation_technique == 'DT' %}
+{% if interpolation_technique == 'RF' or interpolation_technique == 'RF_2' or interpolation_technique == 'RFK' or interpolation_technique == 'CNN' or interpolation_technique == 'RNN' or interpolation_technique == 'GAN' or interpolation_technique == 'IDW' or interpolation_technique == 'OK' or interpolation_technique == 'DT' %}
     <table class="table table-success table-striped-columns">
         <tr>
             <th>Total Data Points</th>
