@@ -59,6 +59,7 @@ import csv
 from django.contrib import messages
 import os
 from django.conf import settings
+import logging
 
 
 # from geopy.distance import geodesic
@@ -169,10 +170,11 @@ def process_network_data(data):
     endDate = max(data, key=lambda x: x['gpsUpdateTime'])['gpsUpdateTime']
     # startDate = datetime.fromtimestamp(startDate / 1000)  # Assuming Unix timestamp in milliseconds
     # endDate = datetime.fromtimestamp(endDate / 1000)
+    print(startDate, endDate)
+    startDate = datetime.fromtimestamp(int(startDate) / 1000).isoformat() # Convert to ISO format string
+    endDate = datetime.fromtimestamp(int(endDate) / 1000).isoformat()
 
-    startDate = datetime.fromtimestamp(float(startDate) / 1000).isoformat() # Convert to ISO format string
-    endDate = datetime.fromtimestamp(float(endDate) / 1000).isoformat()
-
+    print(channelBands)
 
     return {
         'Operator Name': operator,
@@ -187,7 +189,7 @@ def process_network_data(data):
         'LTE Inter': LTEInter,
         'NSA Inter': NSAInter,
         'NSA Intra': NSAIntra,
-        'Channel Bands': [int(band.strip('[]')) for band in channelBands],
+        'Channel Bands': [int(band.strip('[]')) for band in channelBands if band.strip('[]').isdigit()],
         'SD': SD,
         'Mean': mean,
         'Median': median
@@ -277,89 +279,352 @@ def display_interpolated_network(request, network_id):
     })
 
 
+# def display_heatmap_view(request):
+#     # os.makedirs(settings.CACHE_DIR, exist_ok=True)
+#     if request.method != 'POST':
+#         return redirect('define_boundary')
+#     data_source = request.POST.get('data_source', 'database')
+#     operatorName = request.POST.get('operatorName')
+#     dataSelection = request.POST['dataSelection']
+#     interpolation_technique = request.POST['InterpolationTechnique']
+#     area = 0
+#     coordinates_string = []
+#     results = []
+#     if not request.FILES.get('data_file') and data_source == 'csv':
+#         messages.warning(request, 'No Files uploaded')
+#         return redirect('define_boundary')
+#
+#     if not operatorName:
+#         print(operatorName)
+#         messages.warning(request, 'Please Select Operator')
+#         return redirect('define_boundary')
+#
+#     if data_source == 'database':
+#         if request.user.is_authenticated and request.user.username not in ['abrar', 'ncc']:
+#             messages.warning(request, 'You do not have access to the stored data')
+#             return redirect('define_boundary')
+#
+#         # operator_name, coordinates_string, dataSelection, interpolation_technique = get_post_data(request)
+#         try:
+#             # Attempt to extract data from POST request
+#             operator_name = request.POST['operatorName']
+#             coordinates_string = request.POST['coordinates']
+#
+#             if not coordinates_string and data_source != 'csv':
+#                 messages.error(request,'Missing required data. Please Make sure to draw polygon and select the proper options')
+#                 return redirect('define_boundary')
+#
+#
+#             print(operator_name, coordinates_string, interpolation_technique)
+#         except KeyError:
+#             messages.error(request, 'Missing required data. Please Make sure to draw polygon and select the proper options')
+#             return redirect('define_boundary')
+#
+#         coordinates_tuples = process_coordinates(coordinates_string)
+#
+#         polygon = Polygon(coordinates_tuples)
+#         shapely_polygon = ShapelyPolygon(coordinates_tuples)
+#         # area = area_calculate(shapely_polygon)
+#         area = calculate_area_sq_km(coordinates_tuples)
+#         results = fetch_network_data(polygon, operator_name, dataSelection, coordinates_tuples)
+#     # results = fetch_network_data(polygon, operator_name, dataSelection)
+#
+#     elif data_source == 'csv' and request.FILES.get('data_file'):
+#         csv_file = request.FILES['data_file']
+#         csv_data = csv.DictReader(StringIO(csv_file.read().decode('utf-8')))
+#         # results = process_csv_data(list(csv_data), polygon, operator_name, dataSelection)
+#         results = list(csv_data)
+#         print('CSV processing done')
+#
+#
+#     if not results:
+#         messages.warning(request, 'No data found for the specified area and/or criteria.')
+#         return redirect('define_boundary')
+#
+#     result_data = process_results(results, data_source)
+#     OD_matrics = process_network_data(result_data)
+#
+#     interpolated_results = []
+#     metrics = []
+#     if interpolation_technique != 'OD':
+#         if request.user.username != 'abrar':
+#             messages.warning(request, 'You do not have access to Interpolation')
+#             return redirect('define_boundary')
+#         coords_map, all_coords = get_osm_coordinates(shapely_polygon, results, interpolation_technique, coordinates_tuples,
+#                                                  result_data, data_source)
+#         interpolated_results, metrics = perform_interpolation(interpolation_technique, results, all_coords, data_source)
+#     combined_data = combine_data(result_data, interpolated_results)
+#     folium_map = create_folium_map(shapely_polygon, combined_data, result_data)
+#     map_html = folium_map._repr_html_()
+#     chart_context = prepare_chart_context(interpolation_technique, metrics)
+#     summary_metrics = {}
+#     print(chart_context)
+#     if interpolation_technique != 'OD':
+#         summary_metrics = calculate_summary_metrics(metrics)
+#         if request.user.is_authenticated and data_source == 'database':
+#             InterpolatedNetwork.objects.create(
+#                 user=request.user,
+#                 operator_name=operatorName,
+#                 coordinates=coordinates_string,
+#                 data_selection=dataSelection,
+#                 interpolation_technique=interpolation_technique,
+#                 interpolated_data=interpolated_results,
+#                 metrics=metrics,
+#                 summary_metrics=summary_metrics,
+#                 area=area
+#             )
+#     return render(request, 'mapapp/display_heatmap3.html', {
+#         'map_html': map_html,
+#         'metrics': metrics,
+#         'chart_context': chart_context,
+#         'interpolation_technique': interpolation_technique,
+#         'area': area,
+#         'summary_metrics': summary_metrics,
+#         'OD_matrics': OD_matrics
+#     })
+
+
+
 def display_heatmap_view(request):
     # os.makedirs(settings.CACHE_DIR, exist_ok=True)
     if request.method != 'POST':
         return redirect('define_boundary')
-    if not request.POST.get('operatorName'):
-        print(request.POST.get('operatorName'))
+
+    data_source = request.POST.get('data_source', 'database')
+    operator_name = request.POST.get('operatorName')
+    data_selection = request.POST['dataSelection']
+    interpolation_technique = request.POST['InterpolationTechnique']
+
+    if not operator_name:
         messages.warning(request, 'Please Select Operator')
         return redirect('define_boundary')
 
-    if request.POST.get('data_source') == 'database':
-        if request.user.is_authenticated and request.user.username not in ['abrar', 'ncc']:
-            messages.warning(request, 'You do not have access to the stored data')
-            return redirect('define_boundary')
-
-    # operator_name, coordinates_string, dataSelection, interpolation_technique = get_post_data(request)
-    try:
-        # Attempt to extract data from POST request
-        operator_name = request.POST['operatorName']
-        coordinates_string = request.POST['coordinates']
-        if not coordinates_string:
-            messages.error(request,'Missing required data. Please Make sure to draw polygon and select the proper options')
-            return redirect('define_boundary')
-        dataSelection = request.POST['dataSelection']
-        interpolation_technique = request.POST['InterpolationTechnique']
-        print(operator_name, coordinates_string, interpolation_technique)
-    except KeyError:
-        messages.error(request, 'Missing required data. Please Make sure to draw polygon and select the proper options')
-        return redirect('define_boundary')
-
-    coordinates_tuples = process_coordinates(coordinates_string)
-
-    polygon = Polygon(coordinates_tuples)
-    # results = fetch_network_data(polygon, operator_name, dataSelection)
-    data_source = request.POST.get('data_source', 'database')
-
-    if not request.FILES.get('data_file') and data_source == 'csv':
+    if data_source == 'csv' and not request.FILES.get('data_file'):
         messages.warning(request, 'No Files uploaded')
         return redirect('define_boundary')
-    if data_source == 'csv' and request.FILES.get('data_file'):
-        csv_file = request.FILES['data_file']
-        csv_data = csv.DictReader(StringIO(csv_file.read().decode('utf-8')))
-        results = process_csv_data(list(csv_data), polygon, operator_name, dataSelection)
-        print('done')
+
+    if data_source == 'database':
+        if not user_has_access(request):
+            messages.warning(request, 'You do not have access to the stored data')
+            return redirect('define_boundary')
+        results, area, shapely_polygon, coordinates_string = handle_database_source(request)
     else:
-        results = fetch_network_data(polygon, operator_name, dataSelection, coordinates_tuples)
+        results = handle_csv_source(request)
+        area = 0
+        shapely_polygon = None
+        coordinates_string = None
+
     if not results:
         messages.warning(request, 'No data found for the specified area and/or criteria.')
         return redirect('define_boundary')
 
     result_data = process_results(results, data_source)
-    OD_matrics = process_network_data(result_data)
-    shapely_polygon = ShapelyPolygon(coordinates_tuples)
-    # area = area_calculate(shapely_polygon)
-    area = calculate_area_sq_km(coordinates_tuples)
-    interpolated_results = []
-    metrics = []
+    od_matrics = process_network_data(result_data)
+    if coordinates_string:
+        coordinates_tuples = process_coordinates(coordinates_string)
+        area = calculate_area_sq_km(coordinates_tuples)
+        od_matrics['Area'] = f"{area:.2f} SQUARE KM"
+    else:
+        od_matrics['Area'] = 'Undefined'
+
+    interpolated_results, metrics = [], []
     if interpolation_technique != 'OD':
-        if request.user.username != 'abrar':
+        if not user_can_interpolate(request):
             messages.warning(request, 'You do not have access to Interpolation')
             return redirect('define_boundary')
-        coords_map, all_coords = get_osm_coordinates(shapely_polygon, results, interpolation_technique, coordinates_tuples,
-                                                 result_data, data_source)
-        interpolated_results, metrics = perform_interpolation(interpolation_technique, results, all_coords, data_source)
+        if data_source != 'csv' or coordinates_string:
+            interpolated_results, metrics = handle_interpolation(
+                shapely_polygon, results, interpolation_technique, coordinates_string, result_data, data_source
+            )
+
     combined_data = combine_data(result_data, interpolated_results)
+    map_html, chart_context, summary_metrics = generate_output(
+        request, shapely_polygon, combined_data, result_data, metrics, interpolation_technique, interpolated_results, area, operator_name, coordinates_string, data_selection, data_source
+    )
+
+    return render_heatmap_view(request, map_html, metrics, chart_context, interpolation_technique, area, summary_metrics, od_matrics)
+
+
+def user_has_access(request):
+    return request.user.is_authenticated and request.user.username in ['abrar', 'ncc']
+
+
+def handle_database_source(request):
+    try:
+        operator_name = request.POST['operatorName']
+        coordinates_string = request.POST['coordinates']
+        if not coordinates_string:
+            raise KeyError
+
+        coordinates_tuples = process_coordinates(coordinates_string)
+        shapely_polygon = ShapelyPolygon(coordinates_tuples)
+        area = calculate_area_sq_km(coordinates_tuples)
+        results = fetch_network_data(Polygon(coordinates_tuples), operator_name, request.POST['dataSelection'], coordinates_tuples)
+        return results, area, shapely_polygon, coordinates_string
+
+    except KeyError:
+        messages.error(request, 'Missing required data. Please make sure to draw polygon and select the proper options')
+        return redirect('define_boundary')
+
+
+# def handle_csv_source(request):
+#     csv_file = request.FILES['data_file']
+#     csv_data = csv.DictReader(StringIO(csv_file.read().decode('utf-8')))
+#
+#     # Print the first 10 rows for debugging
+#     csv_rows = list(csv_data)
+#     # for i, row in enumerate(csv_rows[:10]):
+#     #     print(f"Row {i + 1}: {row}")
+#
+#     processed_data = []
+#     required_keys = [
+#         'Latitude', 'Longitude', 'Cell ID', 'Cell ID TAC', 'Cell ID PCI',
+#         'Signal Strength', 'GPS Update Time', 'Channel Bands', 'Network Type', 'Operator Name'
+#     ]
+#
+#     for row in csv_rows:
+#         if not all(key in row for key in required_keys):
+#             missing_keys = [key for key in required_keys if key not in row]
+#             logging.error(f'Missing keys in CSV data: {missing_keys}')
+#             messages.error(request, f'Missing keys in CSV data: {missing_keys}')
+#             return redirect('define_boundary')
+#
+#         data_item = {
+#             'latitude': row['Latitude'],
+#             'longitude': row['Longitude'],
+#             'cellId': row['Cell ID'],
+#             'cellId_TAC': row['Cell ID TAC'],
+#             'cellId_PCI': row['Cell ID PCI'],
+#             'signalStrength': row['Signal Strength'],
+#             'gpsUpdateTime': row['GPS Update Time'],
+#             'channelBands': row['Channel Bands'],
+#             'networkType': row['Network Type'],
+#             'operator_name': row['Operator Name']
+#         }
+#         processed_data.append(data_item)
+#
+#     return processed_data
+
+def handle_csv_source(request):
+    csv_file = request.FILES['data_file']
+    csv_data = csv.DictReader(StringIO(csv_file.read().decode('utf-8')))
+
+    # Print the first 10 rows for debugging
+    csv_rows = list(csv_data)
+    # for i, row in enumerate(csv_rows[:10]):
+    #     print(f"Row {i + 1}: {row}")
+
+    processed_data = []
+
+    # Define the possible key sets
+    required_keys_1 = [
+        'Latitude', 'Longitude', 'Cell ID', 'Cell ID TAC', 'Cell ID PCI',
+        'Signal Strength', 'GPS Update Time', 'Channel Bands', 'Network Type', 'Operator Name'
+    ]
+    required_keys_2 = [
+        'latitude', 'longitude', 'cellId', 'cellId_TAC', 'cellId_PCI',
+        'signalStrength', 'gpsUpdateTime', 'channelBands', 'networkType', 'operatorName'
+    ]
+
+    # Check which key set is present in the CSV
+    headers = csv_rows[0].keys()
+
+    if set(required_keys_1).issubset(headers):
+        required_keys = required_keys_1
+        key_mapping = {
+            'latitude': 'Latitude',
+            'longitude': 'Longitude',
+            'cellId': 'Cell ID',
+            'cellId_TAC': 'Cell ID TAC',
+            'cellId_PCI': 'Cell ID PCI',
+            'signalStrength': 'Signal Strength',
+            'gpsUpdateTime': 'GPS Update Time',
+            'channelBands': 'Channel Bands',
+            'networkType': 'Network Type',
+            'operator_name': 'Operator Name'
+        }
+    elif set(required_keys_2).issubset(headers):
+        required_keys = required_keys_2
+        key_mapping = {
+            'latitude': 'latitude',
+            'longitude': 'longitude',
+            'cellId': 'cellId',
+            'cellId_TAC': 'cellId_TAC',
+            'cellId_PCI': 'cellId_PCI',
+            'signalStrength': 'signalStrength',
+            'gpsUpdateTime': 'gpsUpdateTime',
+            'channelBands': 'channelBands',
+            'networkType': 'networkType',
+            'operator_name': 'operatorName'
+        }
+    else:
+        missing_keys = [key for key in required_keys_1 if key not in headers]
+        logging.error(f'Missing keys in CSV data: {missing_keys}')
+        messages.error(request, f'Missing keys in CSV data: {missing_keys}')
+        return redirect('define_boundary')
+
+    for row in csv_rows:
+        if not all(key in row for key in required_keys):
+            missing_keys = [key for key in required_keys if key not in row]
+            logging.error(f'Missing keys in CSV data: {missing_keys}')
+            messages.error(request, f'Missing keys in CSV data: {missing_keys}')
+            return redirect('define_boundary')
+
+        data_item = {
+            'latitude': row[key_mapping['latitude']],
+            'longitude': row[key_mapping['longitude']],
+            'cellId': row[key_mapping['cellId']],
+            'cellId_TAC': row[key_mapping['cellId_TAC']],
+            'cellId_PCI': row[key_mapping['cellId_PCI']],
+            'signalStrength': row[key_mapping['signalStrength']],
+            'gpsUpdateTime': row[key_mapping['gpsUpdateTime']],
+            'channelBands': row[key_mapping['channelBands']],
+            'networkType': row[key_mapping['networkType']],
+            'operator_name': row[key_mapping['operator_name']]
+        }
+        processed_data.append(data_item)
+
+    return processed_data
+
+
+def user_can_interpolate(request):
+    return request.user.username == 'abrar'
+
+
+def handle_interpolation(shapely_polygon, results, interpolation_technique, coordinates_tuples, result_data, data_source):
+    coords_map, all_coords = get_osm_coordinates(
+        shapely_polygon, results, interpolation_technique, coordinates_tuples, result_data, data_source
+    )
+    return perform_interpolation(interpolation_technique, results, all_coords, data_source)
+
+
+def generate_output(request, shapely_polygon, combined_data, result_data, metrics, interpolation_technique, interpolated_results, area, operator_name, coordinates_string, data_selection, data_source):
     folium_map = create_folium_map(shapely_polygon, combined_data, result_data)
     map_html = folium_map._repr_html_()
     chart_context = prepare_chart_context(interpolation_technique, metrics)
     summary_metrics = {}
-    print(chart_context)
     if interpolation_technique != 'OD':
         summary_metrics = calculate_summary_metrics(metrics)
-        if request.user.is_authenticated and data_source == 'database':
-            InterpolatedNetwork.objects.create(
-                user=request.user,
-                operator_name=operator_name,
-                coordinates=coordinates_string,
-                data_selection=dataSelection,
-                interpolation_technique=interpolation_technique,
-                interpolated_data=interpolated_results,
-                metrics=metrics,
-                summary_metrics=summary_metrics,
-                area=area
-            )
+        if data_source == 'database':
+            store_interpolated_data(request, operator_name, coordinates_string, data_selection, interpolation_technique, interpolated_results, metrics, summary_metrics, area)
+    return map_html, chart_context, summary_metrics
+
+
+def store_interpolated_data(request, operator_name, coordinates_string, data_selection, interpolation_technique, interpolated_results, metrics, summary_metrics, area):
+    InterpolatedNetwork.objects.create(
+        user=request.user,
+        operator_name=operator_name,
+        coordinates=coordinates_string,
+        data_selection=data_selection,
+        interpolation_technique=interpolation_technique,
+        interpolated_data=interpolated_results,
+        metrics=metrics,
+        summary_metrics=summary_metrics,
+        area=area
+    )
+
+
+def render_heatmap_view(request, map_html, metrics, chart_context, interpolation_technique, area, summary_metrics, od_matrics):
     return render(request, 'mapapp/display_heatmap3.html', {
         'map_html': map_html,
         'metrics': metrics,
@@ -367,8 +632,14 @@ def display_heatmap_view(request):
         'interpolation_technique': interpolation_technique,
         'area': area,
         'summary_metrics': summary_metrics,
-        'OD_matrics': OD_matrics
+        'OD_matrics': od_matrics
     })
+
+
+
+
+
+
 
 
 # def display_heatmap_view(request):
@@ -865,7 +1136,7 @@ def perform_interpolation(interpolation_technique, results, all_coords, data_sou
         metrics['Total Execution time'] = metrics['Training Duration (seconds)'] + prediction_time
     elif interpolation_technique == 'IDW':
         print('IDW')
-        IDW = SignalStrengthInterpolatorIDW(results, data_source)
+        IDW = SignalStrengthInterpolatorIDW(results)
         metrics = IDW.calculate_performance_metrics()
         interpolated_results, prediction_time = IDW.predict(all_coords)
         metrics['Prediction Time'] = prediction_time
@@ -985,7 +1256,7 @@ def process_results(results, data_source):
                 'gpsUpdateTime': obj['gpsUpdateTime'],
                 'channelBands': obj['channelBands'],
                 'networkType': obj['networkType'],
-                'operator_name': obj['operatorName']
+                'operator_name': obj['operator_name']
             }
             processed_data.append(data_item)
     if data_source == 'database':
@@ -1041,32 +1312,243 @@ def prepare_chart_context(interpolation_technique, metrics):
     return chart_context
 
 
+# def create_folium_map(shapely_polygon, combined_data, result_data):
+#     centroid = shapely_polygon.centroid
+#     bounds = shapely_polygon.bounds
+#     folium_map = folium.Map(location=[centroid.y, centroid.x])
+#     signalStrengths = [int(item['signalStrength']) for item in combined_data]
+#     max_signal = max(signalStrengths)
+#     min_signal = min(signalStrengths)
+#     # Define color scale
+#     # max_signal = max(int(item['signalStrength']) for item in combined_data)
+#     # min_signal = min(int(item['signalStrength']) for item in combined_data)
+#     # vmin = min_signal if min_signal > -140 else -140
+#     # vmax = max_signal if max_signal < -60 else -60
+#     vmax = -80
+#     vmin = -120
+#     color_scale = cm.LinearColormap(colors=['red', 'yellow', 'green'], vmin=vmin, vmax=vmax)
+#
+#     # Create hotlines and markers
+#     hotlines = []
+#     current_line = []
+#     marker_offset = 0.00001  # Adjust as needed for visual clarity
+#
+#     for key, ref in enumerate(combined_data):
+#         is_original = ref in result_data
+#
+#         # Add markers
+#         point_color = color_scale(int(ref['signalStrength']))
+#         if is_original:
+#             folium.CircleMarker(
+#                 location=[float(ref['latitude']), float(ref['longitude'])],
+#                 radius=3,
+#                 color=point_color,
+#                 fill=True,
+#                 fill_color=point_color
+#             ).add_to(folium_map)
+#         else:
+#             folium.Rectangle(
+#                 bounds=[[float(ref['latitude']) - marker_offset, float(ref['longitude']) - marker_offset],
+#                         [float(ref['latitude']) + marker_offset, float(ref['longitude']) + marker_offset]],
+#                 color=point_color,
+#                 fill=True,
+#                 fill_color=point_color
+#             ).add_to(folium_map)
+#
+#         # Add to hotlines
+#         if key > 0:
+#             prev_ref = combined_data[key - 1]
+#             distance = calculate_distance(prev_ref, ref)
+#             if distance > 200:
+#                 if current_line:
+#                     hotlines.append(current_line)
+#                 current_line = [ref]
+#         current_line.append(ref)
+#     if current_line:
+#         hotlines.append(current_line)
+#
+#     # Add hotlines to the map
+#     for line in hotlines:
+#         for i in range(len(line) - 1):
+#             start_point = line[i]
+#             end_point = line[i + 1]
+#             start_signal_strength = int(start_point['signalStrength'])
+#             end_signal_strength = int(end_point['signalStrength'])
+#
+#             start_color = color_scale(start_signal_strength)
+#             end_color = color_scale(end_signal_strength)
+#             # start_color = color_scale(start_point['signalStrength'])
+#             # end_color = color_scale(end_point['signalStrength'])
+#             start_latitude = float(start_point['latitude'])
+#             start_longitude = float(start_point['longitude'])
+#             end_latitude = float(end_point['latitude'])
+#             end_longitude = float(end_point['longitude'])
+#
+#             gradient = {0: start_color, 1: end_color}
+#             folium.PolyLine(
+#                 locations=[
+#                     [start_latitude, start_longitude],
+#                     [end_latitude, end_longitude]
+#                 ],
+#                 color=start_color,
+#                 gradient=gradient,
+#                 opacity=0.4,
+#                 weight=8
+#             ).add_to(folium_map)
+#     legend_html = f"""
+#         <div style="position: fixed;
+#                     top: 50px; left: 50px; width: 150px; height: 150px;
+#                     border:2px solid grey; z-index:9999; font-size:18px;
+#                     background-color: white;
+#                     opacity: 0.8;">
+#             <p style="text-align:center;"><b>Signal Strength</b></p>
+#             <p style="margin-left:10px;">{vmin} dBm <span style="margin-left:10px;background-color:red;width:10px;height:10px;display:inline-block;"></span></p>
+#             <p style="margin-left:10px;">{(vmin + vmax) / 2} dBm <span style="margin-left:10px;background-color:yellow;width:10px;height:10px;display:inline-block;"></span></p>
+#             <p style="margin-left:10px;">{vmax} dBm <span style="margin-left:10px;background-color:green;width:10px;height:10px;display:inline-block;"></span></p>
+#         </div>
+#         """
+#
+#     folium_map.get_root().html.add_child(folium.Element(legend_html))
+#
+#     folium_map.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+#     return folium_map
+
+
+# def create_folium_map(shapely_polygon, combined_data, result_data):
+#     if shapely_polygon is not None:
+#         centroid = shapely_polygon.centroid
+#         bounds = shapely_polygon.bounds
+#         initial_location = [centroid.y, centroid.x]
+#     else:
+#         initial_location = [float(result_data[0]['latitude']), float(result_data[0]['longitude'])]
+#         bounds = None
+#
+#     folium_map = folium.Map(location=initial_location)
+#
+#     signalStrengths = [float(item['signalStrength']) for item in combined_data]
+#     max_signal = max(signalStrengths)
+#     min_signal = min(signalStrengths)
+#
+#     vmax = -80
+#     vmin = -120
+#     color_scale = cm.LinearColormap(colors=['red', 'yellow', 'green'], vmin=vmin, vmax=vmax)
+#
+#     hotlines = []
+#     current_line = []
+#     marker_offset = 0.00001
+#
+#     for key, ref in enumerate(combined_data):
+#         is_original = ref in result_data
+#         point_color = color_scale(float(ref['signalStrength']))
+#
+#         if is_original:
+#             folium.CircleMarker(
+#                 location=[float(ref['latitude']), float(ref['longitude'])],
+#                 radius=3,
+#                 color=point_color,
+#                 fill=True,
+#                 fill_color=point_color
+#             ).add_to(folium_map)
+#         else:
+#             folium.Rectangle(
+#                 bounds=[[float(ref['latitude']) - marker_offset, float(ref['longitude']) - marker_offset],
+#                         [float(ref['latitude']) + marker_offset, float(ref['longitude']) + marker_offset]],
+#                 color=point_color,
+#                 fill=True,
+#                 fill_color=point_color
+#             ).add_to(folium_map)
+#
+#         if key > 0:
+#             prev_ref = combined_data[key - 1]
+#             distance = calculate_distance(prev_ref, ref)
+#             if distance > 200:
+#                 if current_line:
+#                     hotlines.append(current_line)
+#                 current_line = [ref]
+#         current_line.append(ref)
+#     if current_line:
+#         hotlines.append(current_line)
+#
+#     for line in hotlines:
+#         for i in range(len(line) - 1):
+#             start_point = line[i]
+#             end_point = line[i + 1]
+#             start_signal_strength = float(start_point['signalStrength'])
+#             end_signal_strength = float(end_point['signalStrength'])
+#
+#             start_color = color_scale(start_signal_strength)
+#             end_color = color_scale(end_signal_strength)
+#             start_latitude = float(start_point['latitude'])
+#             start_longitude = float(start_point['longitude'])
+#             end_latitude = float(end_point['latitude'])
+#             end_longitude = float(end_point['longitude'])
+#
+#             gradient = {0: start_color, 1: end_color}
+#             folium.PolyLine(
+#                 locations=[
+#                     [start_latitude, start_longitude],
+#                     [end_latitude, end_longitude]
+#                 ],
+#                 color=start_color,
+#                 gradient=gradient,
+#                 opacity=0.4,
+#                 weight=8
+#             ).add_to(folium_map)
+#
+#     legend_html = f"""
+#         <div style="position: fixed;
+#                     top: 50px; left: 50px; width: 150px; height: 150px;
+#                     border:2px solid grey; z-index:9999; font-size:18px;
+#                     background-color: white;
+#                     opacity: 0.8;">
+#             <p style="text-align:center;"><b>Signal Strength</b></p>
+#             <p style="margin-left:10px;">{vmin} dBm <span style="margin-left:10px;background-color:red;width:10px;height:10px;display:inline-block;"></span></p>
+#             <p style="margin-left:10px;">{(vmin + vmax) / 2} dBm <span style="margin-left:10px;background-color:yellow;width:10px;height:10px;display:inline-block;"></span></p>
+#             <p style="margin-left:10px;">{vmax} dBm <span style="margin-left:10px;background-color:green;width:10px;height:10px;display:inline-block;"></span></p>
+#         </div>
+#         """
+#
+#     folium_map.get_root().html.add_child(folium.Element(legend_html))
+#
+#     if bounds:
+#         folium_map.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+#
+#     return folium_map
+
+
 def create_folium_map(shapely_polygon, combined_data, result_data):
-    centroid = shapely_polygon.centroid
-    bounds = shapely_polygon.bounds
-    folium_map = folium.Map(location=[centroid.y, centroid.x])
-    signalStrengths = [int(item['signalStrength']) for item in combined_data]
-    max_signal = max(signalStrengths)
-    min_signal = min(signalStrengths)
-    # Define color scale
-    # max_signal = max(int(item['signalStrength']) for item in combined_data)
-    # min_signal = min(int(item['signalStrength']) for item in combined_data)
-    # vmin = min_signal if min_signal > -140 else -140
-    # vmax = max_signal if max_signal < -60 else -60
+    if shapely_polygon is not None:
+        centroid = shapely_polygon.centroid
+        bounds = shapely_polygon.bounds
+        initial_location = [centroid.y, centroid.x]
+    else:
+        initial_location = [float(result_data[0]['latitude']), float(result_data[0]['longitude'])]
+        bounds = None
+
+    folium_map = folium.Map(location=initial_location)
+
+    # signalStrengths = [int(item['signalStrength']) for item in combined_data]
+    # max_signal = max(signalStrengths)
+    # min_signal = min(signalStrengths)
+
     vmax = -80
     vmin = -120
+    extreme_min = -125
     color_scale = cm.LinearColormap(colors=['red', 'yellow', 'green'], vmin=vmin, vmax=vmax)
+    extreme_color = 'blue'
 
-    # Create hotlines and markers
     hotlines = []
     current_line = []
-    marker_offset = 0.00001  # Adjust as needed for visual clarity
+    marker_offset = 0.00001
 
     for key, ref in enumerate(combined_data):
         is_original = ref in result_data
+        signal_strength = int(ref['signalStrength'])
+        if signal_strength <= extreme_min:
+            point_color = extreme_color
+        else:
+            point_color = color_scale(signal_strength)
 
-        # Add markers
-        point_color = color_scale(int(ref['signalStrength']))
         if is_original:
             folium.CircleMarker(
                 location=[float(ref['latitude']), float(ref['longitude'])],
@@ -1084,7 +1566,6 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
                 fill_color=point_color
             ).add_to(folium_map)
 
-        # Add to hotlines
         if key > 0:
             prev_ref = combined_data[key - 1]
             distance = calculate_distance(prev_ref, ref)
@@ -1096,7 +1577,6 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
     if current_line:
         hotlines.append(current_line)
 
-    # Add hotlines to the map
     for line in hotlines:
         for i in range(len(line) - 1):
             start_point = line[i]
@@ -1104,10 +1584,16 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
             start_signal_strength = int(start_point['signalStrength'])
             end_signal_strength = int(end_point['signalStrength'])
 
-            start_color = color_scale(start_signal_strength)
-            end_color = color_scale(end_signal_strength)
-            # start_color = color_scale(start_point['signalStrength'])
-            # end_color = color_scale(end_point['signalStrength'])
+            if start_signal_strength <= extreme_min:
+                start_color = extreme_color
+            else:
+                start_color = color_scale(start_signal_strength)
+
+            if end_signal_strength <= extreme_min:
+                end_color = extreme_color
+            else:
+                end_color = color_scale(end_signal_strength)
+
             start_latitude = float(start_point['latitude'])
             start_longitude = float(start_point['longitude'])
             end_latitude = float(end_point['latitude'])
@@ -1124,13 +1610,15 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
                 opacity=0.4,
                 weight=8
             ).add_to(folium_map)
+
     legend_html = f"""
         <div style="position: fixed; 
-                    top: 50px; left: 50px; width: 150px; height: 150px; 
+                    top: 50px; left: 50px; width: 150px; height: 180px; 
                     border:2px solid grey; z-index:9999; font-size:18px;
                     background-color: white;
                     opacity: 0.8;">
             <p style="text-align:center;"><b>Signal Strength</b></p>
+            <p style="margin-left:10px;"> No Signal <span style="margin-left:10px;background-color:blue;width:10px;height:10px;display:inline-block;"></span></p>
             <p style="margin-left:10px;">{vmin} dBm <span style="margin-left:10px;background-color:red;width:10px;height:10px;display:inline-block;"></span></p>
             <p style="margin-left:10px;">{(vmin + vmax) / 2} dBm <span style="margin-left:10px;background-color:yellow;width:10px;height:10px;display:inline-block;"></span></p>
             <p style="margin-left:10px;">{vmax} dBm <span style="margin-left:10px;background-color:green;width:10px;height:10px;display:inline-block;"></span></p>
@@ -1139,7 +1627,9 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
 
     folium_map.get_root().html.add_child(folium.Element(legend_html))
 
-    folium_map.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+    if bounds:
+        folium_map.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+
     return folium_map
 
 
