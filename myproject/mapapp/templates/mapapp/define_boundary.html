@@ -15,6 +15,188 @@
             display: none;
         }
 
+        *{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+body {
+  /*height:100vh;*/
+  /*display:flex;*/
+  /*align-items:center;*/
+  /*justify-content:center;*/
+  /*background-color: #212121;*/
+  /*font-family:arial;*/
+}
+.file-input__input {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+
+.file-input__label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 2px;
+  /*font-size: 14px;*/
+  font-weight: 600;
+  color: #fff;
+  font-size: 10px;
+  padding: 5px 6px;
+  background-color: #4245a8;
+  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.25);
+}
+
+.file-input__label svg {
+  height: 10px;
+  margin-right: 2px;
+}
+
+button {
+    width: 100%;
+    padding: 20px;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+}
+
+button:focus {
+    outline: none;
+}
+.label {
+  display: flex;
+  align-items: center;
+  border-radius: 50px;
+  padding: 5px 7px;
+  margin: 1px 0;
+  cursor: pointer;
+  transition: .3s;
+}
+
+.label:hover,
+/*.label:focus-within,*/
+.label:active {
+  background: hsla(5, 90%, 80%, .14);
+}
+
+
+
+.radio-input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  z-index: -1;
+}
+.nineteen {
+    border-radius: 4px;
+    background: linear-gradient(to right, #67b26b, #4ca2cb);
+    color: #fff;
+    padding: 20px 0;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.nineteen span {
+    position: relative;
+    transition: 400ms;
+}
+
+.nineteen span::after {
+    content: '\00bb';
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    right: -20px;
+    transition: 500ms;
+}
+
+.nineteen:hover span {
+    padding-right: 25px;
+}
+
+.nineteen:hover span::after {
+    opacity: 1;
+    right: 0;
+}
+
+.radio-design {
+  width: 22px;
+  height: 22px;
+  border-radius: 100px;
+  background: linear-gradient(to right bottom, hsl(154, 97%, 62%), hsl(225, 97%, 62%));
+  position: relative;
+}
+
+.radio-design::before {
+  content: '';
+  display: inline-block;
+  width: inherit;
+  height: inherit;
+  border-radius: inherit;
+  background: hsl(0, 0%, 90%);
+  transform: scale(1.1);
+  transition: .3s;
+}
+
+.radio-input:checked+.radio-design::before {
+  transform: scale(0);
+}
+
+.label-text {
+  /*color: hsl(0, 0%, 60%);*/
+  margin-left: 14px;
+  /*letter-spacing: 3px;*/
+  /*text-transform: uppercase;*/
+  /*font-size: 18px;*/
+  /*font-weight: 900;*/
+  transition: .3s;
+}
+
+.radio-input:checked~.label-text {
+  color: hsl(50, 20%, 40%);
+  font-weight: bold;
+}
+
+.radio-lb{
+    font-size: large !important;
+    margin-bottom: 0 !important;
+}
+
+.hidden {
+            display: none;
+        }
+.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+hr {
+            border: none; /* Remove the default border */
+            border-top: 2px solid black; /* Increase the border size */
+            margin: 2px 0; /* Optional: add some margin for spacing */
+            opacity: .5;
+        }
+.mb-3{
+    margin-bottom: 2px !important;
+}
+.nav-link {
+    color: Gray;
+}
+.nav-pills .nav-link.active {
+    color: White;
+    background-color: snow;
+    background: linear-gradient(to right, #3ed2d2, #6598b0);
+}
+
+
     </style>
 {% endblock %}
 
@@ -38,12 +220,12 @@
                     <div id="map"></div>
                 </div>
                 <div class="col-2">
-                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <ul class="nav nav-pills" id="myTab" role="tablist">
                       <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true">Interpolation</button>
+                        <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab" aria-controls="home" aria-selected="true"><h6>Coverage Mapping</h6></button>
                       </li>
                       <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false">Download</button>
+                        <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="false"><h6>Download</h6></button>
                       </li>
                     </ul>
                     <div class="tab-content" id="myTabContent">
@@ -52,8 +234,9 @@
                             {% if authenticated %}
                             <form method="post" action="{% url 'display_heatmap' %}" id="interpolationResult" enctype="multipart/form-data">
                             {% csrf_token %}
+                                <hr>
                                 <div class="mb-3">
-                                  <label for="operatorName" class="form-label"><h5>Operator Name</h5></label>
+                                  <label for="operatorName" class="form-label"><p class="radio-lb"> MNO Name </p></label>
 <!--                                  <select class="form-select form-select-lg mb-3" aria-label="Large select example" id="operatorName" name="operatorName">-->
 <!--                                    <option value="3">Three</option>-->
 <!--                                    <option value="EE">EE</option>-->
@@ -61,20 +244,47 @@
 <!--                                    <option value="O2 - UK">O2 UK</option>-->
 <!--                                    </select>-->
                                     <div class="mb-3">
-    <input type="radio" id="Three" name="operatorName" value="3" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
-    <label for="Three">Three</label><br>
 
-    <input type="radio" id="EE" name="operatorName" value="EE" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
-    <label for="EE">EE</label><br>
+<!--    <label for="EE">EE</label><br>-->
 
-    <input type="radio" id="VodafoneUK" name="operatorName" value="vodafone UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
-    <label for="VodafoneUK">Vodafone UK</label><br>
+    <label class="label">
+    <input class="radio-input" type="radio" id="EE" name="operatorName" value="EE" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
+    <div class="radio-design"></div>
+    <div class="label-text">EE</div>
+    </label>
 
-    <input type="radio" id="O2UK" name="operatorName" value="O2 - UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
-    <label for="O2UK">O2 UK</label><br>
-    <input type="radio" id="personal" name="operatorName" value="personal" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="personal">Personal Data</label><br>
+    <label class="label">
+    <input class="radio-input" type="radio" id="O2UK" name="operatorName" value="O2 - UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
+    <div class="radio-design"></div>
+    <div class="label-text">O2</div>
+    </label>
+
+    <label class="label">
+    <input class="radio-input" type="radio" id="Three" name="operatorName" value="3" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
+    <div class="radio-design"></div>
+    <div class="label-text">Three</div>
+    </label>
+
+    <label class="label">
+    <input class="radio-input" type="radio" id="VodafoneUK" name="operatorName" value="vodafone UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
+    <div class="radio-design"></div>
+    <div class="label-text">Vodafone</div>
+    </label>
+
+
+<!--    <label for="O2UK">O2</label><br>-->
+
+<!--    <input type="radio" id="Three" name="operatorName" value="3" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>-->
+<!--    <label for="Three">Three</label><br>-->
+
+
+<!--    <input type="radio" id="VodafoneUK" name="operatorName" value="vodafone UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>-->
+<!--    <label for="VodafoneUK">Vodafone</label><br>-->
+
+<!--    <input type="radio" id="personal" name="operatorName" value="personal" {% if username == 'ncc' %}disabled{% endif %}>-->
+<!--    <label for="personal">Personal Data</label><br>-->
 </div>
+                                    <hr>
                                 </div>
                                 <div class="mb-3">
 <!--                                  <label for="dataSelection" class="form-label">Data Selection</label>-->
@@ -97,29 +307,74 @@
                                 </div>
                                 {% if has_access or username == 'ncc' %}
                                 <div class="mb-3">
-                                    <label for="" class="form-label"><h5> Data Source </h5></label>
-                                    <div>
-                                        <input type="radio" name="data_source" value="database" checked>
-                                        <label>Use existing database data</label>
-                                    </div>
-                                    <div>
-                                        <input type="radio" name="data_source" value="csv" {% if username == 'ncc' %}disabled{% endif %}>
-                                        <label>Upload CSV</label>
-                                        <input type="file" name="data_file" accept=".csv" {% if username == 'ncc' %}disabled{% endif %}>
-                                    </div>
+                                    <label for="" class="form-label"><p class="radio-lb"> Data Source</p></label>
+<!--                                    <div>-->
+<!--                                        <input type="radio" name="data_source" value="database">-->
+<!--                                        <label>NCC Database</label>-->
+<!--                                    </div>-->
+<!--                                    <label class="label">-->
+<!--                                    <input class="radio-input" type="radio" name="data_source" value="database">-->
+<!--                                    <div class="radio-design"></div>-->
+<!--                                    <div class="label-text">NCC Database</div>-->
+<!--                                    </label>-->
+<!--                                    <label class="label">-->
+<!--                                    <input class="radio-input" type="radio" name="data_source" value="csv" {% if username == 'ncc' %}disabled{% endif %}>-->
+<!--                                    <div class="radio-design"></div>-->
+<!--                                    <div class="label-text">Upload File</div>-->
+<!--                                    </label>-->
+<!--                                    <input type="file" name="data_file" accept=".csv" {% if username == 'ncc' %}disabled{% endif %}>-->
+                                     <label class="label">
+                                        <input id="radio_database" type="radio" class="radio-input" name="data_source" value="database">
+                                        <div class="radio-design"></div>
+                                        <div class="label-text">NCC Database</div>
+                                    </label>
+                                    <label class="label">
+                                        <input id="radio_csv" type="radio" class="radio-input" name="data_source" value="csv" {% if username == 'ncc' %}disabled{% endif %}>
+                                        <div class="radio-design"></div>
+                                        <div class="label-text">Upload File</div>
+                                    </label>
+<!--                                    <input type="file" id="data_file" name="data_file" accept=".csv" class="hidden" {% if username == 'ncc' %}disabled{% endif %}>-->
+                                   <input
+                                            type="file"
+                                            name="data_file"
+                                            id="file-input"
+                                            class="file-input__input hidden"
+                                          />
+                                          <label class="file-input__label hidden" id="file-label" for="file-input">
+                                            <svg
+                                              aria-hidden="true"
+                                              focusable="false"
+                                              data-prefix="fas"
+                                              data-icon="upload"
+                                              class="svg-inline--fa fa-upload fa-w-16"
+                                              role="img"
+                                              xmlns="http://www.w3.org/2000/svg"
+                                              viewBox="0 0 512 512">
+                                              <path
+                                                fill="currentColor"
+                                                d="M296 384h-80c-13.3 0-24-10.7-24-24V192h-87.7c-17.8 0-26.7-21.5-14.1-34.1L242.3 5.7c7.5-7.5 19.8-7.5 27.3 0l152.2 152.2c12.6 12.6 3.7 34.1-14.1 34.1H320v168c0 13.3-10.7 24-24 24zm216-8v112c0 13.3-10.7 24-24 24H24c-13.3 0-24-10.7-24-24V376c0-13.3 10.7-24 24-24h136v8c0 30.9 25.1 56 56 56h80c30.9 0 56-25.1 56-56v-8h136c13.3 0 24 10.7 24 24zm-124 88c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20zm64 0c0-11-9-20-20-20s-20 9-20 20 9 20 20 20 20-9 20-20z"
+                                              ></path>
+                                            </svg>
+                                            <span>Upload file</span></label>
+<!--                                    <div>-->
+<!--                                        <input type="radio" name="data_source" value="csv" {% if username == 'ncc' %}disabled{% endif %}>-->
+<!--                                        <label>Upload File</label>-->
+<!--                                        <input type="file" name="data_file" accept=".csv" {% if username == 'ncc' %}disabled{% endif %}>-->
+<!--                                    </div>-->
                                 </div>
                                 {% else %}
                                 <div class="mb-3">
-                                    <label for="" class="form-label"><h5> Data Source </h5></label>
-                                    <div>
-                                        <input type="radio" name="data_source" value="database" disabled>
-                                        <label>Use existing database data</label>
-                                    </div>
-                                    <div>
-                                        <input type="radio" name="data_source" value="csv" >
-                                        <label>Upload CSV</label>
-                                        <input type="file" name="data_file" accept=".csv" >
-                                    </div>
+                                    <label class="label">
+                                        <input id="radio_database" type="radio" class="radio-input" name="data_source" value="database">
+                                        <div class="radio-design"></div>
+                                        <div class="label-text">NCC Database</div>
+                                    </label>
+                                    <label class="label">
+                                        <input id="radio_csv" type="radio" class="radio-input" name="data_source" value="csv">
+                                        <div class="radio-design"></div>
+                                        <div class="label-text">Upload File</div>
+                                    </label>
+                                    <input type="file" id="data_file" name="data_file" accept=".csv" class="hidden">
                                 </div>
 
                                 {% endif %}
@@ -141,54 +396,97 @@
 <!--                                        <option value="OK_PCI">Ordinary Kriging(PCI Based)</option>-->
 <!--                                        &lt;!&ndash; other options &ndash;&gt;-->
 <!--                                  </select>-->
-<label for="InterpolationTechnique" class="form-label"><h5>Interpolation Model</h5></label>
+                                     <hr>
+<label for="InterpolationTechnique" class="form-label"><p class="radio-lb">Interpolation Model</p></label>
 <div class="mb-3">
-    <input type="radio" id="OD" name="InterpolationTechnique" value="OD" checked>
-    <label for="OD">Original Data</label><br>
+<!--    <input type="radio" id="OD" name="InterpolationTechnique" value="OD" checked>-->
+<!--    <label for="OD">Original Data</label><br>-->
 
-    <input type="radio" id="RF" name="InterpolationTechnique" value="RF" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="RF">Random Forest</label><br>
-
-    <input type="radio" id="RFK" name="InterpolationTechnique" value="RFK" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="RF">Random Forest Kriging </label><br>
 
 <!--    <input type="radio" id="RF_2" name="InterpolationTechnique" value="RF_2">-->
 <!--    <label for="RF_2">Random Forest (V2)</label><br>-->
 
-    <!-- Options CNN and RNN are commented out in your dropdown, so they are not included here -->
+        <label class="label">
+            <input type="radio" id="OD" class="radio-input" name="InterpolationTechnique" value="OD">
+            <div class="radio-design"></div>
+            <div class="label-text">Original Data</div>
+        </label>
 
+        <label class="label">
+            <input type="radio" id="RF" class="radio-input" name="InterpolationTechnique" value="RF" {% if username == 'ncc' %}disabled{% endif %}>
+            <div class="radio-design"></div>
+            <div class="label-text">Random Forest</div>
+        </label>
 
+        <label class="label">
+            <input type="radio" id="RFK" class="radio-input" name="InterpolationTechnique" value="RFK" {% if username == 'ncc' %}disabled{% endif %}>
+            <div class="radio-design"></div>
+            <div class="label-text">Random Forest Kriging</div>
+        </label>
 
-    <input type="radio" id="RF_PCI" name="InterpolationTechnique" value="RF_PCI" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="RF_PCI">Random Forest(PCI Based)</label><br>
+        <!-- Uncomment if needed
+        <label class="label">
+            <input type="radio" id="RF_2" class="radio-input" name="InterpolationTechnique" value="RF_2">
+            <div class="radio-design"></div>
+            <div class="label-text">Random Forest (V2)</div>
+        </label>
+        -->
 
-    <input type="radio" id="DT" name="InterpolationTechnique" value="DT" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="DT">Decision Tree</label><br>
+        <label class="label">
+            <input type="radio" id="RF_PCI" class="radio-input" name="InterpolationTechnique" value="RF_PCI" {% if username == 'ncc' %}disabled{% endif %}>
+            <div class="radio-design"></div>
+            <div class="label-text">Random Forest (PCI Based)</div>
+        </label>
 
-    <input type="radio" id="DT_PCI" name="InterpolationTechnique" value="DT_PCI" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="DT_PCI">Decision Tree(PCI Based)</label><br>
+        <label class="label">
+            <input type="radio" id="DT" class="radio-input" name="InterpolationTechnique" value="DT" {% if username == 'ncc' %}disabled{% endif %}>
+            <div class="radio-design"></div>
+            <div class="label-text">Decision Tree</div>
+        </label>
 
-    <input type="radio" id="IDW" name="InterpolationTechnique" value="IDW" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="IDW">IDW</label><br>
+        <label class="label">
+            <input type="radio" id="DT_PCI" class="radio-input" name="InterpolationTechnique" value="DT_PCI" {% if username == 'ncc' %}disabled{% endif %}>
+            <div class="radio-design"></div>
+            <div class="label-text">Decision Tree (PCI Based)</div>
+        </label>
 
-    <input type="radio" id="IDW_PCI" name="InterpolationTechnique" value="IDW_PCI" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="IDW_PCI">IDW(PCI Based)</label><br>
+        <label class="label">
+            <input type="radio" id="IDW" class="radio-input" name="InterpolationTechnique" value="IDW" {% if username == 'ncc' %}disabled{% endif %}>
+            <div class="radio-design"></div>
+            <div class="label-text">IDW</div>
+        </label>
 
-    <input type="radio" id="OK" name="InterpolationTechnique" value="OK" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="OK">Ordinary Kriging</label><br>
+        <label class="label">
+            <input type="radio" id="IDW_PCI" class="radio-input" name="InterpolationTechnique" value="IDW_PCI" {% if username == 'ncc' %}disabled{% endif %}>
+            <div class="radio-design"></div>
+            <div class="label-text">IDW (PCI Based)</div>
+        </label>
 
-    <input type="radio" id="OK_PCI" name="InterpolationTechnique" value="OK_PCI" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="OK_PCI">Ordinary Kriging(PCI Based)</label><br>
+        <label class="label">
+            <input type="radio" id="OK" class="radio-input" name="InterpolationTechnique" value="OK" {% if username == 'ncc' %}disabled{% endif %}>
+            <div class="radio-design"></div>
+            <div class="label-text">Ordinary Kriging</div>
+        </label>
 
-    <input type="radio" id="GAN" name="InterpolationTechnique" value="GAN" {% if username == 'ncc' %}disabled{% endif %}>
-    <label for="GAN">GAN</label><br>
+        <label class="label">
+            <input type="radio" id="OK_PCI" class="radio-input" name="InterpolationTechnique" value="OK_PCI" {% if username == 'ncc' %}disabled{% endif %}>
+            <div class="radio-design"></div>
+            <div class="label-text">Ordinary Kriging (PCI Based)</div>
+        </label>
+
+        <label class="label">
+            <input type="radio" id="GAN" class="radio-input" name="InterpolationTechnique" value="GAN" {% if username == 'ncc' %}disabled{% endif %}>
+            <div class="radio-design"></div>
+            <div class="label-text">GAN</div>
+        </label>
 
     <!-- Insert other options if there are any -->
 </div>
                                 </div>
-
+<hr>
                             <input id="coordinates" name="coordinates" type="hidden" value=''>
-                            <button type="submit" class="btn btn-success">Show Results</button>
+                                <button type="submit" class="nineteen"><span>Generate Map</span></button>
+<!--                            <button type="submit" class="btn btn-success">Generate Map</button>-->
 <!--                                <a type="button" class="btn btn-success" onclick="document.getElementById('interpolationResult').submit()">View Result</a>-->
                         </form>
 <!--                            <h5><a target="_blank" href="https://drive.google.com/file/d/1ZrvLEDfmO-fQlinvun8l3KsPIe1pIzj2/view?usp=sharing">Download Sample Data</a></h5>-->
@@ -201,30 +499,72 @@
                             {% if has_access or username == 'ncc' %}
                             <form method="post" action="{% url 'download_csv' %}">
                             {% csrf_token %}
-                                <div class="mb-3">
-                                  <label for="operatorName2" class="form-label">Operator Name</label>
-                                  <select class="form-select form-select-lg mb-3" aria-label="Large select example" id="operatorName2" name="operatorName">
-                                    <option value="3">Three</option>
-                                    <option value="EE">EE</option>
-                                    <option value="vodafone UK">Vodafone UK</option>
-                                    <option value="O2 - UK">O2 UK</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                  <label for="dataSelection2" class="form-label">Data Selection</label>
-                                  <select id="dataSelection2" class="form-select form-select-lg mb-3" name="dataSelection">
-                                        <option value="CD">Complete Data</option>
-<!--                                        <option value="BD">Boundary Data</option>-->
-                                        <!-- other options -->
-                                  </select>
-                                </div>
+<div class="mb-3">
+    <hr>
+                                  <label class="form-label"><p class="radio-lb"> MNO Name </p></label>
+<!--                                  <select class="form-select form-select-lg mb-3" aria-label="Large select example" id="operatorName" name="operatorName">-->
+<!--                                    <option value="3">Three</option>-->
+<!--                                    <option value="EE">EE</option>-->
+<!--                                    <option value="vodafone UK">Vodafone UK</option>-->
+<!--                                    <option value="O2 - UK">O2 UK</option>-->
+<!--                                    </select>-->
+                                    <div class="mb-3">
+<!--                                        <input type="radio" id="EED" name="operatorName2" value="EE" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>-->
+<!--                                        <label for="EE">EE</label><br>-->
 
+<!--                                        <input type="radio" id="O2UKD" name="operatorName2" value="O2 - UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>-->
+<!--                                        <label for="O2UK">O2</label><br>-->
+
+<!--                                        <input type="radio" id="ThreeD" name="operatorName2" value="3" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>-->
+<!--                                        <label for="Three">Three</label><br>-->
+
+
+<!--                                        <input type="radio" id="VodafoneUKD" name="operatorName2" value="vodafone UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>-->
+<!--                                        <label for="VodafoneUK">Vodafone</label><br>-->
+                                        <label class="label">
+    <input class="radio-input" type="radio" id="EED" name="operatorName2" value="EE" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
+    <div class="radio-design"></div>
+    <div class="label-text">EE</div>
+    </label>
+
+    <label class="label">
+    <input class="radio-input" type="radio" id="O2UKD" name="operatorName2" value="O2 - UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
+    <div class="radio-design"></div>
+    <div class="label-text">O2</div>
+    </label>
+
+    <label class="label">
+    <input class="radio-input" type="radio" id="ThreeD" name="operatorName2" value="3" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
+    <div class="radio-design"></div>
+    <div class="label-text">Three</div>
+    </label>
+
+    <label class="label">
+    <input class="radio-input" type="radio" id="VodafoneUKD" name="operatorName2" value="vodafone UK" {% if username != 'ncc' and username != 'abrar' %}disabled{% endif %}>
+    <div class="radio-design"></div>
+    <div class="label-text">Vodafone</div>
+    </label>
+
+                                    <!--    <input type="radio" id="personal" name="operatorName" value="personal" {% if username == 'ncc' %}disabled{% endif %}>-->
+                                    <!--    <label for="personal">Personal Data</label><br>-->
+                                    </div>
+    <hr>
+<!--                                <div class="mb-3">-->
+<!--                                  <label for="dataSelection2" class="form-label">Data Selection</label>-->
+<!--                                  <select id="dataSelection2" class="form-select form-select-lg mb-3" name="dataSelection">-->
+<!--                                        <option value="CD">Complete Data</option>-->
+<!--&lt;!&ndash;                                        <option value="BD">Boundary Data</option>&ndash;&gt;-->
+<!--                                        &lt;!&ndash; other options &ndash;&gt;-->
+<!--                                  </select>-->
+<!--                                </div>-->
+                            <input id="dataSelection2" name="dataSelection" type="hidden" value='CD'>
                             <input id="coordinates2" name="coordinates" type="hidden" value=''>
-                            <button type="submit" class="btn btn-success">Download</button>
+                            <button type="submit" class="nineteen"><span>Download</span></button>
+<!--                            <button type="submit" class="btn btn-success">Download</button>-->
 
-                        </form>
 
                         </div>
+                        </form>
                          {% else %}
                         {% if authenticated %}
                         <div>You do not have access to this content.</div>
@@ -286,6 +626,38 @@
 
         });
 </script>
+
+
 {% endif %}
+
+<script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const radioDatabase = document.getElementById('radio_database');
+            const radioCSV = document.getElementById('radio_csv');
+            const fileInput = document.getElementById('file-input');
+            const fileL = document.getElementById('file-label');
+            function toggleFileInput() {
+console.log('hii')
+
+                if (radioCSV.checked && !radioCSV.disabled) {
+
+                    fileInput.classList.remove('hidden');
+                    fileL.classList.remove('hidden');
+                    fileInput.disabled = false;
+                } else {
+
+                    fileInput.classList.add('hidden');
+                    fileL.classList.add('hidden');
+                    fileInput.disabled = true;
+                }
+            }
+
+            radioDatabase.addEventListener('change', toggleFileInput);
+            radioCSV.addEventListener('change', toggleFileInput);
+
+            // Initial state check
+            toggleFileInput();
+        });
+    </script>
 {% endblock %}
 

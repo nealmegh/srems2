@@ -5,39 +5,67 @@
 {% block title %}Heat-Map - {{interpolation_technique}}{% endblock %}
 
 {% block extra_css %}
+<style>
 
+</style>
 {% endblock %}
 
 {% block content %}
 {% load custom_filters %}
     <section id="content">
-        <div class="container-fluid mt-3">
+         <div class="container-fluid mt-3">
             <div class="row justify-content-end">
-                <div class="col-10 border-box" style="
+
+                <div class="col-12 border-box" id="map" style="
     border: black;
     border-style: double;
     padding: 0 !important;
     border-width: thick;
+    height: 860px !important;
+
 
 ">
                     {{ map_html|safe }}
                 </div>
-                <div class="col-2 border-box">
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasRight" data-bs-scroll="true" data-bs-backdrop="false" aria-labelledby="offcanvasRightLabel">
+  <div class="offcanvas-header">
+    <h5 id="offcanvasRightLabel">Analytics</h5>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <table class="table table-success table-striped-columns">
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
 
-           <table class="table table-success table-striped-columns">
-                <tr>
-                    <th>Metric</th>
-                    <th>Value</th>
-                </tr>
+                        {% for key, value in OD_matrics.items %}
+                            <tr>
+                                <td>{{ key }}</td>
+                                <td>{{ value|parse_date }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+  </div>
+</div>
 
-                {% for key, value in OD_matrics.items %}
-                    <tr>
-                        <td>{{ key }}</td>
-                        <td>{{ value|parse_date }}</td>
-                    </tr>
-                {% endfor %}
-            </table>
-                </div>
+
+<!--                <div class="col-2 border-box">-->
+
+<!--                   <table class="table table-success table-striped-columns">-->
+<!--                        <tr>-->
+<!--                            <th>Metric</th>-->
+<!--                            <th>Value</th>-->
+<!--                        </tr>-->
+
+<!--                        {% for key, value in OD_matrics.items %}-->
+<!--                            <tr>-->
+<!--                                <td>{{ key }}</td>-->
+<!--                                <td>{{ value|parse_date }}</td>-->
+<!--                            </tr>-->
+<!--                        {% endfor %}-->
+<!--                    </table>-->
+<!--            </div>-->
                 <div class="col-12">
                     <div class="metrics">
         {% if interpolation_technique == 'RF_PCI' %}
@@ -204,5 +232,6 @@
 {% endblock %}
 
 {% block extra_js %}
+
 
 {% endblock %}

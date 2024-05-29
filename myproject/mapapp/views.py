@@ -60,10 +60,15 @@ from django.contrib import messages
 import os
 from django.conf import settings
 import logging
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+
+def custom_logout_view(request):
+    logout(request)
+    return redirect('/')
 
 
 # from geopy.distance import geodesic
-
 def define_boundary_view(request):
     if request.user.is_authenticated:
         # Assuming you have a one-to-one relationship to a UserProfile model
@@ -134,21 +139,35 @@ def process_network_data(data):
         channelBands.add(item['channelBands'])
 
         if prev_item:
-            distance = calculate_distance(prev_item, item)  # Define this function as per your logic
+            distance = calculate_distance(prev_item, item)
             totalDistance += distance
+
+            if 'cellId' in item and '-' in item['cellId']:
+                cellId_split = item['cellId'].split('-')
+                item['cellId_PCI'] = cellId_split[0]
+            else:
+                item['cellId_PCI'] = 0
+                item['cellId_TAC'] = 0
+
+            if 'cellId' in prev_item and '-' in prev_item['cellId']:
+                cellId_split = prev_item['cellId'].split('-')
+                prev_item['cellId_PCI'] = cellId_split[0]
+            else:
+                prev_item['cellId_PCI'] = 0
+                prev_item['cellId_TAC'] = 0
 
             if prev_item['networkType'] == '1':
                 LTECoverage += distance
                 if prev_item['networkType'] != item['networkType']:
                     LTEInter += 1
-                elif prev_item['cellId'] != item['cellId']:
+                elif prev_item['cellId_PCI'] != item['cellId_PCI']:
                     LTEIntra += 1
 
             if prev_item['networkType'] == '2':
                 NSACoverage += distance
                 if prev_item['networkType'] != item['networkType']:
                     NSAInter += 1
-                elif prev_item['cellId'] != item['cellId']:
+                elif prev_item['cellId_PCI'] != item['cellId_PCI']:
                     NSAIntra += 1
         else:
             operator = item['operator_name']
@@ -171,28 +190,32 @@ def process_network_data(data):
     # startDate = datetime.fromtimestamp(startDate / 1000)  # Assuming Unix timestamp in milliseconds
     # endDate = datetime.fromtimestamp(endDate / 1000)
     print(startDate, endDate)
-    startDate = datetime.fromtimestamp(int(startDate) / 1000).isoformat() # Convert to ISO format string
-    endDate = datetime.fromtimestamp(int(endDate) / 1000).isoformat()
+    # startDate = datetime.fromtimestamp(int(startDate) / 1000).isoformat() # Convert to ISO format string
+    startDate = datetime.fromtimestamp(int(startDate) / 1000).strftime('%d/%m/%Y')
+    # endDate = datetime.fromtimestamp(int(endDate) / 1000).isoformat()
+    endDate = datetime.fromtimestamp(int(endDate) / 1000).strftime('%d/%m/%Y')
 
     print(channelBands)
 
     return {
-        'Operator Name': operator,
-        'Start Date': startDate,
-        'End Date': endDate,
-        'Number Of Unique PCI': numberOfCellId,
-        'LTE Coverage': LTECoverage,  # in kilometers
-        'NSA Coverage': NSACoverage,  # in kilometers
+        'MNO Name': operator,
+        'Duration': f"{str(startDate)} - {str(endDate)}",
+        # 'Start Date': startDate,
+        # 'End Date': endDate,
+        'Mean (dBm)': mean,
+        'Median (dBm)': median,
+        'Std Dev (dBm)': SD,
+        '4G Coverage (km)': LTECoverage,  # in kilometers
+        '5G NSA Coverage (km)': NSACoverage,  # in kilometers
         'Total Distance': totalDistance,  # in kilometers
-        'NSA Percentage': NSAPercent,
-        'LTE Intra': LTEIntra,
-        'LTE Inter': LTEInter,
-        'NSA Inter': NSAInter,
-        'NSA Intra': NSAIntra,
-        'Channel Bands': [int(band.strip('[]')) for band in channelBands if band.strip('[]').isdigit()],
-        'SD': SD,
-        'Mean': mean,
-        'Median': median
+        '5G NSA Percentage': NSAPercent,
+        'Number of PCI': numberOfCellId,
+        '4G Intra': LTEIntra,
+        '4G Inter': LTEInter,
+        '5G NSA Inter': NSAInter,
+        '5G NSA Intra': NSAIntra,
+        'Channel Bands': [int(band.strip('[]')) for band in channelBands if band.strip('[]').isdigit()]
+
     }
 
 
@@ -423,9 +446,12 @@ def display_heatmap_view(request):
     if coordinates_string:
         coordinates_tuples = process_coordinates(coordinates_string)
         area = calculate_area_sq_km(coordinates_tuples)
-        od_matrics['Area'] = f"{area:.2f} SQUARE KM"
+        od_matrics['Area'] = f"{area:.2f} sq km"
+
     else:
         od_matrics['Area'] = 'Undefined'
+
+    od_matrics['Data Points'] = len(results)
 
     interpolated_results, metrics = [], []
     if interpolation_technique != 'OD':
@@ -436,6 +462,7 @@ def display_heatmap_view(request):
             interpolated_results, metrics = handle_interpolation(
                 shapely_polygon, results, interpolation_technique, coordinates_string, result_data, data_source
             )
+            od_matrics['Interpolated Points'] = len(interpolated_results)
 
     combined_data = combine_data(result_data, interpolated_results)
     map_html, chart_context, summary_metrics = generate_output(
@@ -1526,7 +1553,8 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
         bounds = None
 
     folium_map = folium.Map(location=initial_location)
-
+    f = folium.Figure(height=850)
+    folium_map.add_to(f)
     # signalStrengths = [int(item['signalStrength']) for item in combined_data]
     # max_signal = max(signalStrengths)
     # min_signal = min(signalStrengths)
@@ -1618,10 +1646,10 @@ def create_folium_map(shapely_polygon, combined_data, result_data):
                     background-color: white;
                     opacity: 0.8;">
             <p style="text-align:center;"><b>Signal Strength</b></p>
-            <p style="margin-left:10px;"> No Signal <span style="margin-left:10px;background-color:blue;width:10px;height:10px;display:inline-block;"></span></p>
-            <p style="margin-left:10px;">{vmin} dBm <span style="margin-left:10px;background-color:red;width:10px;height:10px;display:inline-block;"></span></p>
-            <p style="margin-left:10px;">{(vmin + vmax) / 2} dBm <span style="margin-left:10px;background-color:yellow;width:10px;height:10px;display:inline-block;"></span></p>
-            <p style="margin-left:10px;">{vmax} dBm <span style="margin-left:10px;background-color:green;width:10px;height:10px;display:inline-block;"></span></p>
+            <p style="margin-left:10px;"><span style="margin-left:10px; margin-right: 10px; background-color:blue;width:10px;height:10px;display:inline-block;"></span> No Signal</p>
+            <p style="margin-left:10px;"><span style="margin-left:10px; margin-right: 10px; background-color:red;width:10px;height:10px;display:inline-block;"></span> Poor</p>
+            <p style="margin-left:10px;"><span style="margin-left:10px; margin-right: 10px; background-color:yellow;width:10px;height:10px;display:inline-block;"></span> Moderate</p>
+            <p style="margin-left:10px;"><span style="margin-left:10px; margin-right: 10px; background-color:green;width:10px;height:10px;display:inline-block;"></span> Excellent </p>
         </div>
         """
 
