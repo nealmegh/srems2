@@ -79,6 +79,8 @@ button:focus {
   transition: .3s;
 }
 
+
+
 .label:hover,
 /*.label:focus-within,*/
 .label:active {
@@ -164,6 +166,14 @@ button:focus {
 .radio-input:checked~.label-text {
   color: hsl(50, 20%, 40%);
   font-weight: bold;
+}
+.disabled-label {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+.disabled-label .label-text {
+    color: hsl(0, 0%, 80%);
 }
 
 .radio-lb{
@@ -329,7 +339,7 @@ hr {
                                         <div class="label-text">NCC Database</div>
                                     </label>
                                     <label class="label">
-                                        <input id="radio_csv" type="radio" class="radio-input" name="data_source" value="csv" {% if username == 'ncc' %}disabled{% endif %}>
+                                        <input id="radio_csv" type="radio" class="radio-input" name="data_source" value="csv">
                                         <div class="radio-design"></div>
                                         <div class="label-text">Upload File</div>
                                     </label>
@@ -412,13 +422,13 @@ hr {
             <div class="label-text">Original Data</div>
         </label>
 
-        <label class="label">
+        <label class="label {% if username == 'ncc' %}disabled-label{% endif %}">
             <input type="radio" id="RF" class="radio-input" name="InterpolationTechnique" value="RF" {% if username == 'ncc' %}disabled{% endif %}>
             <div class="radio-design"></div>
             <div class="label-text">Random Forest</div>
         </label>
 
-        <label class="label">
+        <label class="label {% if username == 'ncc' %}disabled-label{% endif %}">
             <input type="radio" id="RFK" class="radio-input" name="InterpolationTechnique" value="RFK" {% if username == 'ncc' %}disabled{% endif %}>
             <div class="radio-design"></div>
             <div class="label-text">Random Forest Kriging</div>
@@ -432,49 +442,49 @@ hr {
         </label>
         -->
 
-        <label class="label">
+        <label class="label {% if username == 'ncc' %}disabled-label{% endif %}">
             <input type="radio" id="RF_PCI" class="radio-input" name="InterpolationTechnique" value="RF_PCI" {% if username == 'ncc' %}disabled{% endif %}>
             <div class="radio-design"></div>
             <div class="label-text">Random Forest (PCI Based)</div>
         </label>
 
-        <label class="label">
+        <label class="label {% if username == 'ncc' %}disabled-label{% endif %}">
             <input type="radio" id="DT" class="radio-input" name="InterpolationTechnique" value="DT" {% if username == 'ncc' %}disabled{% endif %}>
             <div class="radio-design"></div>
             <div class="label-text">Decision Tree</div>
         </label>
 
-        <label class="label">
+        <label class="label {% if username == 'ncc' %}disabled-label{% endif %}">
             <input type="radio" id="DT_PCI" class="radio-input" name="InterpolationTechnique" value="DT_PCI" {% if username == 'ncc' %}disabled{% endif %}>
             <div class="radio-design"></div>
             <div class="label-text">Decision Tree (PCI Based)</div>
         </label>
 
-        <label class="label">
+        <label class="label {% if username == 'ncc' %}disabled-label{% endif %}">
             <input type="radio" id="IDW" class="radio-input" name="InterpolationTechnique" value="IDW" {% if username == 'ncc' %}disabled{% endif %}>
             <div class="radio-design"></div>
             <div class="label-text">IDW</div>
         </label>
 
-        <label class="label">
+        <label class="label {% if username == 'ncc' %}disabled-label{% endif %}">
             <input type="radio" id="IDW_PCI" class="radio-input" name="InterpolationTechnique" value="IDW_PCI" {% if username == 'ncc' %}disabled{% endif %}>
             <div class="radio-design"></div>
             <div class="label-text">IDW (PCI Based)</div>
         </label>
 
-        <label class="label">
+        <label class="label {% if username == 'ncc' %}disabled-label{% endif %}">
             <input type="radio" id="OK" class="radio-input" name="InterpolationTechnique" value="OK" {% if username == 'ncc' %}disabled{% endif %}>
             <div class="radio-design"></div>
             <div class="label-text">Ordinary Kriging</div>
         </label>
 
-        <label class="label">
+        <label class="label {% if username == 'ncc' %}disabled-label{% endif %}">
             <input type="radio" id="OK_PCI" class="radio-input" name="InterpolationTechnique" value="OK_PCI" {% if username == 'ncc' %}disabled{% endif %}>
             <div class="radio-design"></div>
             <div class="label-text">Ordinary Kriging (PCI Based)</div>
         </label>
 
-        <label class="label">
+        <label class="label {% if username == 'ncc' %}disabled-label{% endif %}">
             <input type="radio" id="GAN" class="radio-input" name="InterpolationTechnique" value="GAN" {% if username == 'ncc' %}disabled{% endif %}>
             <div class="radio-design"></div>
             <div class="label-text">GAN</div>
@@ -657,6 +667,17 @@ console.log('hii')
 
             // Initial state check
             toggleFileInput();
+        });
+    </script>
+  <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const labels = document.querySelectorAll('.disabled-label');
+
+            labels.forEach(label => {
+                label.addEventListener('click', function(event) {
+                    event.preventDefault();
+                });
+            });
         });
     </script>
 {% endblock %}

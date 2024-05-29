@@ -413,13 +413,22 @@ def display_heatmap_view(request):
     if request.method != 'POST':
         return redirect('define_boundary')
 
-    data_source = request.POST.get('data_source', 'database')
+    data_source = request.POST.get('data_source')
     operator_name = request.POST.get('operatorName')
     data_selection = request.POST['dataSelection']
-    interpolation_technique = request.POST['InterpolationTechnique']
-
+    interpolation_technique = request.POST.get('InterpolationTechnique')
+    coordinates_string = request.POST.get('coordinates')
+    if not interpolation_technique:
+        messages.warning(request, 'Please Select A Mapping Technique')
+        return redirect('define_boundary')
     if not operator_name:
         messages.warning(request, 'Please Select Operator')
+        return redirect('define_boundary')
+    if not data_source:
+        messages.warning(request, 'Please Select Data Source')
+        return redirect('define_boundary')
+    if data_source == 'database' and not coordinates_string:
+        messages.warning(request, 'Please Select A Boundary')
         return redirect('define_boundary')
 
     if data_source == 'csv' and not request.FILES.get('data_file'):
